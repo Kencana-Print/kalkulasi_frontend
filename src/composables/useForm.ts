@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useAuthStore } from "@/stores/authStore";
@@ -40,9 +40,10 @@ export function useForm<
   const showCancelDialog = ref(false);
   const showCloseDialog = ref(false);
 
-  const formData = ref<T>({ ...options.initialData }) as ReturnType<
-    typeof ref<T>
-  >;
+  // NB: jangan pakai `ReturnType<typeof ref<T>>` — itu mengambil overload
+  // terakhir `ref(value?: T)` sehingga formData bertipe Ref<T | undefined>.
+  // Runtime formData selalu terisi (initialData), jadi Ref<T> yang tepat.
+  const formData = ref<T>({ ...options.initialData }) as Ref<T>;
   const originalData = ref<T>(JSON.parse(JSON.stringify(options.initialData)));
 
   const canSave = computed(() => {

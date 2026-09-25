@@ -26,7 +26,7 @@ app.use(Toast, {
   pauseOnHover: true,
   draggable: true,
   hideProgressBar: false,
-  toastClassName: "finance-toast",
+  toastClassName: "kalkulasi-toast",
 });
 
 app.mount("#app");

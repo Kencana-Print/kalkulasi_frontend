@@ -2,9 +2,9 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { authApi, type AuthUser, type MenuPermission } from "@/api/authApi";
 
-const TOKEN_KEY = "finance_token";
-const USER_KEY = "finance_user";
-const ACTIVE_CABANG_KEY = "finance_active_cabang";
+const TOKEN_KEY = "kalkulasi_token";
+const USER_KEY = "kalkulasi_user";
+const ACTIVE_CABANG_KEY = "kalkulasi_active_cabang";
 
 export const useAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY));

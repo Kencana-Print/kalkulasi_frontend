@@ -1,18 +1,24 @@
 import apiClient from "./axios";
 
 export interface DashboardSummary {
-  kasbon: { count: number; total: number };
-  transfer: { count: number; total: number };
-  setoran: { count: number };
   serverDate: string;
-  saldo: {
-    kas: { account: string; saldo: number; count: number };
-    bank: { account: string; saldo: number; count: number };
-  };
-  rekon: { selisihCount: number };
-  stok: { negativeCount: number };
-  voucherPt: { count: number; total: number };
-  hutang: { count: number; total: number };
+  belum: { count: number };
+  minta: { count: number };
+  nego: { count: number };
+  wait: { count: number };
+}
+
+export interface TodayActivityRow {
+  NoKalkulasi: string;
+  TglKalkulasi: string;
+  Status: string;
+  Created: string;
+  modified: string;
+  NoPermintaan: string;
+  TglPermintaan: string;
+  Peminta: string;
+  NamaPermintaan: string;
+  DateCreate: string;
 }
 
 export const dashboardApi = {
@@ -21,5 +27,9 @@ export const dashboardApi = {
       params: cabang ? { cabang } : undefined,
     });
     return data.data;
+  },
+  getTodayActivity: async (): Promise<TodayActivityRow[]> => {
+    const { data } = await apiClient.get("/dashboard/today-activity");
+    return data.data ?? [];
   },
 };

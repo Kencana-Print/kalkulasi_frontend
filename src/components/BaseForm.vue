@@ -18,6 +18,7 @@ const props = defineProps<{
   isSaving?: boolean;
   itemName?: string;
   isEditMode?: boolean;
+  hideCancel?: boolean;
 }>();
 
 const showSaveDialog = defineModel<boolean>("showSaveDialog");
@@ -49,7 +50,7 @@ const leftCollapsed = ref(false);
         /></template>
         Simpan
       </v-btn>
-      <v-btn size="small" variant="outlined" @click="showCancelDialog = true">
+      <v-btn v-if="!hideCancel" size="small" variant="outlined" @click="showCancelDialog = true">
         Batal
       </v-btn>
       <v-btn
@@ -294,7 +295,7 @@ const leftCollapsed = ref(false);
   left: 4px;
 }
 
-/* Section card di dalam form — Finance pakai garis hijau */
+/* Section card di dalam form — Kalkulasi pakai garis hijau */
 :deep(.desktop-form-section) {
   padding: 14px 16px;
   border: 1px solid #c8e6c9;

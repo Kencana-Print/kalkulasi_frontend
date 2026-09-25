@@ -17,7 +17,7 @@ body {
   margin: 0;
 }
 
-/* ── Scrollbar hijau Finance ── */
+/* ── Scrollbar hijau Kalkulasi ── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -39,15 +39,15 @@ body {
 }
 
 /* Vuetify navigation drawer item */
-.finance-drawer .v-list-item {
+.kalkulasi-drawer .v-list-item {
   min-height: 36px !important;
 }
-.finance-drawer .v-list-item:hover {
+.kalkulasi-drawer .v-list-item:hover {
   background: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Toast Finance override */
-.finance-toast {
+/* Toast Kalkulasi override */
+.kalkulasi-toast {
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 13px !important;
   border-radius: 8px !important;
@@ -58,7 +58,7 @@ body {
   overflow: auto;
 }
 
-/* Selection color Finance (hijau) */
+/* Selection color Kalkulasi (hijau) */
 ::selection {
   background: rgba(46, 125, 50, 0.2);
 }

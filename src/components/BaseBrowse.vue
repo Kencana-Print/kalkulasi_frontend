@@ -101,7 +101,7 @@ watch(
   { deep: true },
 );
 
-const storageKey = computed(() => `finance_browse_${props.menuId}`);
+const storageKey = computed(() => `kalkulasi_browse_${props.menuId}`);
 const loadState = () => {
   try {
     return JSON.parse(sessionStorage.getItem(storageKey.value) || "null");

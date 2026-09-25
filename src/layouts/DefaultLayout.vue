@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import api from "@/api/axios";
 import { useToast } from "vue-toastification";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
+import { useTabsStore } from "@/stores/tabsStore";
 import logoUrl from "@/assets/logo.png";
 import {
   IconLayoutDashboard,
@@ -28,10 +29,14 @@ import {
   IconTransfer,
   IconTruckDelivery,
   IconMapPin,
+  IconX,
+  IconFileText,
 } from "@tabler/icons-vue";
 
+const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const tabsStore = useTabsStore();
 const toast = useToast();
 const drawer = ref(true);
 const rail = ref(false);
@@ -79,6 +84,7 @@ const submitChangePassword = async () => {
 };
 
 const logout = () => {
+  tabsStore.reset();
   authStore.logout();
   router.push("/login");
 };
@@ -148,28 +154,40 @@ const menus = [
     menuId: null,
     children: [
       {
-        title: "Cost Center",
+        title: "Master Jenis Kain",
         icon: IconAdjustments,
-        route: "/master/cost-center",
-        menuId: "5",
-      },
-      {
-        title: "Rekening (Account)",
-        icon: IconBuildingBank,
-        route: "/master/account",
+        route: "/master/jenis",
         menuId: "6",
       },
       {
-        title: "Kelompok",
-        icon: IconList,
-        route: "/master/kelompok",
+        title: "Master Harga Kain",
+        icon: IconBuildingBank,
+        route: "/master/harga",
         menuId: "7",
       },
       {
-        title: "Jenis Pembayaran",
+        title: "Master Gramasi",
         icon: IconList,
-        route: "/master/jenis-pembayaran",
+        route: "/master/gramasi",
         menuId: "8",
+      },
+      {
+        title: "Master Komponen",
+        icon: IconList,
+        route: "/master/komponen",
+        menuId: "9",
+      },
+      {
+        title: "Master Pekerjaan",
+        icon: IconList,
+        route: "/master/pekerjaan",
+        menuId: "11",
+      },
+      {
+        title: "Master Biaya Pengerjaan",
+        icon: IconList,
+        route: "/master/biaya",
+        menuId: "12",
       },
     ],
   },
@@ -178,136 +196,65 @@ const menus = [
     icon: IconCash,
     menuId: null,
     children: [
+      // {
+      //   title: "Kalkulasi Harga",
+      //   icon: IconTruckDelivery,
+      //   route: "/transaksi/kalkulasi",
+      //   menuId: "21",
+      // },
       {
-        title: "Uang Muka",
+        title: "Permintaan Harga",
         icon: IconReceipt2,
-        route: "/transaksi/uang-muka",
-        menuId: "21",
-      },
-      {
-        title: "Mutasi Out Garmen",
-        icon: IconTruckDelivery,
-        route: "/transaksi/mutasi-out",
-        menuId: "31",
-      },
-      {
-        title: "Bukti Kas Masuk (BKM)",
-        icon: IconTransferIn,
-        route: "/transaksi/bkm",
-        menuId: "23",
-      },
-      {
-        title: "Bukti Kas Keluar (BKK)",
-        icon: IconTransferOut,
-        route: "/transaksi/bkk",
+        route: "/transaksi/minta-harga",
         menuId: "22",
       },
-      {
-        title: "Bukti Bank Masuk (BBM)",
-        icon: IconTransferIn,
-        route: "/transaksi/bbm",
-        menuId: "25",
-      },
-      {
-        title: "Bukti Bank Keluar (BBK)",
-        icon: IconTransferOut,
-        route: "/transaksi/bbk",
-        menuId: "24",
-      },
-      {
-        title: "Jurnal Umum",
-        icon: IconBook,
-        route: "/transaksi/jurnal-umum",
-        menuId: "26",
-      },
-      {
-        title: "Rekonsiliasi Bank",
-        icon: IconArrowsExchange,
-        route: "/transaksi/rekonsiliasi-bank",
-        menuId: "27",
-      },
-      {
-        title: "Pengajuan Transfer",
-        icon: IconTransfer,
-        route: "/transaksi/pengajuan-transfer",
-        menuId: "28",
-      },
-      {
-        title: "Terima Setoran",
-        icon: IconTransferIn,
-        route: "/transaksi/terima-setoran",
-        menuId: "29",
-      },
-      {
-        title: "Voucher Pembayaran",
-        icon: IconFileInvoice,
-        route: "/transaksi/voucher-pembayaran",
-        menuId: "30",
-      },
+
     ],
   },
-  {
-    title: "Posting",
-    icon: IconFileInvoice,
-    menuId: null,
-    children: [
-      {
-        title: "Pembayaran Customer",
-        icon: IconReceipt2,
-        route: "/posting/pembayaran-customer",
-        menuId: "51",
-      },
-      {
-        title: "Pembayaran Cust Kaosan",
-        icon: IconReceipt2,
-        route: "/posting/pembayaran-cust-kaosan",
-        menuId: "52",
-      },
-    ],
-  },
-  {
-    title: "Laporan",
-    icon: IconReportMoney,
-    menuId: null,
-    children: [
-      {
-        title: "List Jurnal",
-        icon: IconList,
-        route: "/laporan/list-jurnal",
-        menuId: null,
-      },
-      {
-        title: "Buku Besar",
-        icon: IconBook,
-        route: "/laporan/buku-besar",
-        menuId: null,
-      },
-      {
-        title: "Kasbon Belum Selesai",
-        icon: IconList,
-        route: "/laporan/kasbon-belum-selesai",
-        menuId: null,
-      },
-      {
-        title: "Rekonsiliasi Bank",
-        icon: IconBuildingBank,
-        route: "/laporan/rekonsiliasi-bank",
-        menuId: null,
-      },
-      {
-        title: "Stok Finance",
-        icon: IconList,
-        route: "/laporan/stok-finance",
-        menuId: null,
-      },
-      {
-        title: "Daftar Hutang",
-        icon: IconList,
-        route: "/laporan/daftar-hutang",
-        menuId: null,
-      },
-    ],
-  },
+
+  // {
+  //   title: "Laporan",
+  //   icon: IconReportMoney,
+  //   menuId: null,
+  //   children: [
+  //     {
+  //       title: "List Jurnal",
+  //       icon: IconList,
+  //       route: "/laporan/list-jurnal",
+  //       menuId: null,
+  //     },
+  //     {
+  //       title: "Buku Besar",
+  //       icon: IconBook,
+  //       route: "/laporan/buku-besar",
+  //       menuId: null,
+  //     },
+  //     {
+  //       title: "Kasbon Belum Selesai",
+  //       icon: IconList,
+  //       route: "/laporan/kasbon-belum-selesai",
+  //       menuId: null,
+  //     },
+  //     {
+  //       title: "Rekonsiliasi Bank",
+  //       icon: IconBuildingBank,
+  //       route: "/laporan/rekonsiliasi-bank",
+  //       menuId: null,
+  //     },
+  //     {
+  //       title: "Stok",
+  //       icon: IconList,
+  //       route: "/laporan/stok-finance",
+  //       menuId: null,
+  //     },
+  //     {
+  //       title: "Daftar Hutang",
+  //       icon: IconList,
+  //       route: "/laporan/daftar-hutang",
+  //       menuId: null,
+  //     },
+  //   ],
+  // },
   {
     title: "Tools",
     icon: IconUsers,
@@ -359,6 +306,58 @@ const toggleGroup = (title: string) => {
     openGroups.value = { [title]: true };
   }
 };
+
+// ── Tab navigasi ala browser ──────────────────────────────────────────
+// 1 tab = 1 menu (key `menu:<menuId>`; Dashboard pin). Buka menu otomatis
+// menambah tab; klik tab = kembali ke halaman terakhir di menu itu;
+// isi halaman dipertahankan via <keep-alive> di <v-main>.
+const tabKeyOf = (r: typeof route): string => {
+  const menuId = r.meta?.menuId as string | undefined;
+  if (menuId) return `menu:${menuId}`;
+  if (r.path === "/") return "dashboard";
+  return `route:${String(r.name ?? r.path)}`;
+};
+
+const findIconForPath = (fullPath: string) => {
+  const path = fullPath.split("?")[0];
+  for (const m of menus) {
+    if (m.children) {
+      for (const c of m.children) {
+        if (path === c.route || path.startsWith(`${c.route}/`)) return c.icon;
+      }
+    } else if (m.route && (path === m.route || path.startsWith(`${m.route}/`))) {
+      return m.icon;
+    }
+  }
+  return undefined;
+};
+
+const syncTab = () => {
+  const key = tabKeyOf(route);
+  const title = String(route.meta?.title ?? route.name ?? key);
+  tabsStore.ensureTab(
+    key,
+    title,
+    route.fullPath,
+    findIconForPath(route.fullPath) ??
+      (key === "dashboard" ? IconLayoutDashboard : undefined),
+    key !== "dashboard",
+  );
+};
+
+watch(() => route.fullPath, syncTab, { immediate: true });
+
+const onTabClick = (key: string) => {
+  const t = tabsStore.tabs.find((x) => x.key === key);
+  if (!t || key === tabsStore.activeKey) return;
+  router.push(t.fullPath);
+};
+
+const onTabClose = (e: Event, key: string) => {
+  e.stopPropagation();
+  const next = tabsStore.close(key);
+  if (next) router.push(next.fullPath);
+};
 </script>
 
 <template>
@@ -368,7 +367,7 @@ const toggleGroup = (title: string) => {
       :rail="!isMobile && rail"
       :temporary="isMobile"
       :permanent="!isMobile"
-      class="finance-drawer"
+      class="kalkulasi-drawer"
       width="240"
       theme="dark"
     >
@@ -378,8 +377,8 @@ const toggleGroup = (title: string) => {
         </div>
         <transition name="fade">
           <div v-if="isMobile || !rail" class="brand-text">
-            <div class="brand-title">FINANCE</div>
-            <div class="brand-sub">Management System</div>
+            <div class="brand-title">KALKULASI</div>
+            <div class="brand-sub">Kalkulasi Harga</div>
           </div>
         </transition>
       </div>
@@ -469,13 +468,13 @@ const toggleGroup = (title: string) => {
       </v-list>
     </v-navigation-drawer>
 
-    <v-app-bar flat class="finance-appbar" height="52">
+    <v-app-bar flat class="kalkulasi-appbar" height="52">
       <v-btn variant="text" size="small" @click="toggleDrawer" class="ml-1">
         <IconMenu2 :size="20" :stroke-width="1.8" />
       </v-btn>
 
       <v-app-bar-title>
-        <span class="appbar-title">Sistem Keuangan</span>
+        <span class="appbar-title">Kalkulasi Harga</span>
       </v-app-bar-title>
 
       <template #append>
@@ -549,8 +548,36 @@ const toggleGroup = (title: string) => {
       </template>
     </v-app-bar>
 
-    <v-main class="finance-main">
-      <router-view />
+    <v-main class="kalkulasi-main">
+      <!-- ── Tab strip: tiap menu yang dibuka jadi satu tab ── -->
+      <div class="tab-strip">
+        <button
+          v-for="tab in tabsStore.tabs"
+          :key="tab.key"
+          class="tab-btn"
+          :class="{ active: tab.key === tabsStore.activeKey }"
+          :title="tab.title"
+          @click="onTabClick(tab.key)"
+        >
+          <component :is="tab.icon ?? IconFileText" :size="14" :stroke-width="1.8" class="tab-icon" />
+          <span class="tab-label">{{ tab.title }}</span>
+          <span
+            v-if="tab.closable"
+            class="tab-close"
+            title="Tutup tab"
+            @click="onTabClose($event, tab.key)"
+          >
+            <IconX :size="12" :stroke-width="2.2" />
+          </span>
+        </button>
+      </div>
+      <div class="tab-content">
+        <router-view v-slot="{ Component, route: r }">
+          <keep-alive :max="15">
+            <component :is="Component" :key="r.fullPath" />
+          </keep-alive>
+        </router-view>
+      </div>
     </v-main>
   </v-app>
 
@@ -615,8 +642,8 @@ const toggleGroup = (title: string) => {
 
 <style scoped>
 /* ── Drawer ── */
-.finance-drawer {
-  background: #1b5e20 !important;
+.kalkulasi-drawer {
+  background: #2e7d32 !important;
   border-right: none !important;
 }
 
@@ -688,7 +715,7 @@ const toggleGroup = (title: string) => {
 }
 
 /* ── App Bar ── */
-.finance-appbar {
+.kalkulasi-appbar {
   background: white !important;
   border-bottom: 1px solid #c8e6c9 !important;
   box-shadow: 0 1px 4px rgba(46, 125, 50, 0.1) !important;
@@ -700,9 +727,14 @@ const toggleGroup = (title: string) => {
 }
 
 /* ── Main ── */
-.finance-main {
+.kalkulasi-main {
   background-color: #f1f8f1 !important;
   min-height: 100vh;
+}
+.kalkulasi-main :deep(.v-main__wrap) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 /* Transition */
@@ -716,10 +748,10 @@ const toggleGroup = (title: string) => {
 }
 
 /* Sembunyikan content di drawer saat rail aktif */
-.finance-drawer :deep(.v-list-item__content) {
+.kalkulasi-drawer :deep(.v-list-item__content) {
   display: none;
 }
-.finance-drawer:not(.v-navigation-drawer--rail) :deep(.v-list-item__content) {
+.kalkulasi-drawer:not(.v-navigation-drawer--rail) :deep(.v-list-item__content) {
   display: flex;
 }
 
@@ -821,10 +853,10 @@ const toggleGroup = (title: string) => {
   margin-left: 2px;
 }
 
-.finance-drawer.v-navigation-drawer--rail :deep(.v-list-item__content) {
+.kalkulasi-drawer.v-navigation-drawer--rail :deep(.v-list-item__content) {
   display: none !important;
 }
-.finance-drawer:not(.v-navigation-drawer--rail) :deep(.v-list-item__content) {
+.kalkulasi-drawer:not(.v-navigation-drawer--rail) :deep(.v-list-item__content) {
   display: grid !important; /* Vuetify 3 defaultnya pakai grid, bukan flex */
   opacity: 1 !important;
   visibility: visible !important;
@@ -850,6 +882,81 @@ const toggleGroup = (title: string) => {
   background: #e0f2e1;
 }
 
+/* ── Tab strip ala browser ── */
+.tab-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 6px 10px 0;
+  background: #f1f8f1;
+  border-bottom: 1px solid #c8e6c9;
+  overflow-x: auto;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+  min-width: 0;
+  padding: 6px 8px 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #616161;
+  background: #e8f0e8;
+  border: 1px solid #c8e6c9;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.tab-btn:hover {
+  background: white;
+  color: #2e7d32;
+}
+.tab-btn.active {
+  background: white;
+  color: #1565c0;
+  border-color: #90caf9;
+  border-bottom: 2px solid white;
+  margin-bottom: -1px;
+  box-shadow: 0 -1px 3px rgba(21, 101, 192, 0.12);
+}
+.tab-icon {
+  flex-shrink: 0;
+}
+.tab-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  color: #9e9e9e;
+}
+.tab-close:hover {
+  background: #ffebee;
+  color: #c62828;
+}
+.tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Responsif DefaultLayout ── */
 @media (max-width: 768px) {
   .appbar-info,
@@ -863,11 +970,11 @@ const toggleGroup = (title: string) => {
   .appbar-title {
     font-size: 13px;
   }
-  .finance-drawer {
+  .kalkulasi-drawer {
     width: 240px !important;
   }
   /* Kembalikan tampilan konten menu di mobile */
-  .finance-drawer :deep(.v-list-item__content) {
+  .kalkulasi-drawer :deep(.v-list-item__content) {
     display: grid !important;
     opacity: 1 !important;
     visibility: visible !important;

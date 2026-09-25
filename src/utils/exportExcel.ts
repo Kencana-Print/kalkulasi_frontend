@@ -4,10 +4,7 @@ import type {
   MutasiOutRow,
   MutasiOutDetail,
 } from "@/api/transaksi/mutasiOutApi";
-import type {
-  DaftarHutangRow,
-  DaftarHutangDetail,
-} from "@/api/laporan/daftarHutangApi";
+
 
 // --- Master Data Export ---
 export const exportCostCenter = async (
@@ -331,7 +328,7 @@ export const exportKelompok = async (items: any[]) => {
   saveAs(new Blob([buf]), `Master_Kelompok_${tglStr.replace(/\//g, "-")}.xlsx`);
 };
 
-export const exportJenisPembayaran = async (items: any[]) => {
+export const exportJenisKain = async (items: any[]) => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Sheet1");
   const today = new Date();
@@ -355,15 +352,15 @@ export const exportJenisPembayaran = async (items: any[]) => {
   };
 
   ws.mergeCells("A1:A1");
-  ws.getCell("A1").value = "Master Jenis Pembayaran";
+  ws.getCell("A1").value = "Master Jenis Kain";
   ws.getCell("A1").font = { bold: true, size: 12 };
   ws.getCell("A2").value = `Tanggal  :${tglStr}`;
   ws.getCell("A2").font = { size: 10 };
   ws.addRow([]);
 
-  const hRow = ws.addRow(["Jenis Pembayaran"]);
+  const hRow = ws.addRow(["Jenis Kain"]);
   const hCell = hRow.getCell(1);
-  hCell.value = "Jenis Pembayaran";
+  hCell.value = "Jenis Kain";
   hCell.font = headerFont;
   hCell.fill = headerFill;
   hCell.border = borderAll;
@@ -384,12 +381,12 @@ export const exportJenisPembayaran = async (items: any[]) => {
   const buf = await wb.xlsx.writeBuffer();
   saveAs(
     new Blob([buf]),
-    `Master_Jenis_Pembayaran_${tglStr.replace(/\//g, "-")}.xlsx`,
+    `Master_Jenis_Kain_${tglStr.replace(/\//g, "-")}.xlsx`,
   );
 };
 
-// --- Transaksi Export ---
-export const exportUangMuka = async (
+// --- Transaksi Export kalkulasi ---
+export const exportKalkulasi = async (
   items: any[],
   startDate: string,
   endDate: string,
@@ -446,11 +443,11 @@ export const exportUangMuka = async (
     cell.alignment = { vertical: "middle", horizontal: "right" };
   };
 
-  const colCount = 14;
+  const colCount = 26;
   const lastCol = String.fromCharCode(64 + colCount); // N
 
   ws.mergeCells(`A1:${lastCol}1`);
-  ws.getCell("A1").value = "Daftar Uang Muka / Kasbon";
+  ws.getCell("A1").value = "Permintaan Harga Kalkulasi";
   ws.getCell("A1").font = { bold: true, size: 12 };
   ws.mergeCells(`A2:${lastCol}2`);
   ws.getCell("A2").value = `Periode  :${startDate} s/d ${endDate}`;
@@ -458,20 +455,32 @@ export const exportUangMuka = async (
   ws.addRow([]);
 
   const cols = [
-    "Nomor",
-    "Tanggal",
-    "Jenis",
-    "Nama Account",
-    "PJH",
-    "Nota",
-    "Penerima",
-    "Nominal",
-    "Terpakai",
-    "Sisa",
-    "Keterangan",
-    "No Bukti",
-    "Selesai",
-    "Closed",
+  "Nomor",
+  "Divisi",
+  "Tanggal", 
+  "Approved",
+  "Customer", 
+  "Sales", 
+  "NamaPekerjaan", 
+  "RencanaOrder",
+  "OrderTerakhir",
+  "Kain", 
+  "Panjang", 
+  "Lebar", 
+  "Ukuran", 
+  "Gramasi", 
+  "Finishing",
+  "Sublim", 
+  "Created", 
+  "HargaLama", 
+  "HargaMAP",
+  "HargaKalkulasi",
+  "TglKalkulasi", 
+  "NomorKalkulasi", 
+  "UsrKalkulasi",
+  "Status", 
+  "KetKalkulasi", 
+  "KetBeli", 
   ];
   const hRow = ws.addRow(cols);
   hRow.eachCell((cell, i) => setH(cell, cols[i - 1]));
@@ -480,19 +489,31 @@ export const exportUangMuka = async (
   for (const item of items) {
     const row = ws.addRow([]);
     setC(row.getCell(1), item.Nomor, "left");
-    setC(row.getCell(2), item.Tanggal, "center");
-    setC(row.getCell(3), item.Jenis, "center");
-    setC(row.getCell(4), item.NamaAccount, "left");
-    setC(row.getCell(5), item.Pjh, "left");
-    setC(row.getCell(6), item.Nota, "left");
-    setC(row.getCell(7), item.Penerima, "left");
-    setN(row.getCell(8), item.Nominal);
-    setN(row.getCell(9), item.Terpakai);
-    setN(row.getCell(10), item.Sisa);
-    setC(row.getCell(11), item.Keterangan, "left");
-    setC(row.getCell(12), item.NoBukti, "left");
-    setC(row.getCell(13), item.Selesai, "center");
-    setC(row.getCell(14), item.Closed, "center");
+    setC(row.getCell(2), item.Divisi, "center");
+    setC(row.getCell(3), item.Tanggal, "center");
+    setC(row.getCell(4), item.Approved, "left");
+    setC(row.getCell(5), item.Customer, "left");
+    setC(row.getCell(6), item.Sales, "left");
+    setC(row.getCell(7), item.NamaPekerjaan, "left");
+    setN(row.getCell(8), item.RencanaOrder);
+    setN(row.getCell(9), item.OrderTerakhir);
+    setN(row.getCell(10), item.Kain, "left");
+    setC(row.getCell(11), item.Panjang, "left");
+    setC(row.getCell(12), item.Lebar, "left");
+    setC(row.getCell(13), item.Ukuran, "left");
+    setC(row.getCell(14), item.Gramasi, "left");
+    setC(row.getCell(15), item.Finishing, "left");
+    setC(row.getCell(16), item.Sublim, "left");
+    setC(row.getCell(17), item.Created, "center");
+    setC(row.getCell(18), item.HargaLama, "right");
+    setC(row.getCell(19), item.HargaMAP, "right");
+    setC(row.getCell(20), item.HargaKalkulasi, "right");
+    setC(row.getCell(21), item.TglKalkulasi, "center");
+    setN(row.getCell(22), item.NomorKalkulasi, "left");
+    setN(row.getCell(23), item.UsrKalkulasi, "left");
+    setN(row.getCell(24), item.status, "center");
+    setC(row.getCell(25), item.KetKalkulasi, "left");
+    setC(row.getCell(26), item.KetBeli, "left");
 
     // Highlight baris Selesai=Belum seperti di Delphi
     if (item.Selesai === "Belum") {
@@ -510,20 +531,31 @@ export const exportUangMuka = async (
   ws.getColumn(1).width = 14;
   ws.getColumn(2).width = 12;
   ws.getColumn(3).width = 8;
-  ws.getColumn(4).width = 25;
-  ws.getColumn(5).width = 14;
-  ws.getColumn(6).width = 12;
-  ws.getColumn(7).width = 20;
-  ws.getColumn(8).width = 16;
-  ws.getColumn(9).width = 16;
-  ws.getColumn(10).width = 16;
-  ws.getColumn(11).width = 25;
-  ws.getColumn(12).width = 14;
+  ws.getColumn(4).width = 10;
+  ws.getColumn(5).width = 10;
+  ws.getColumn(6).width = 10;
+  ws.getColumn(7).width = 10;
+  ws.getColumn(8).width = 10;
+  ws.getColumn(9).width = 10;
+  ws.getColumn(10).width = 10;
+  ws.getColumn(11).width = 10;
+  ws.getColumn(12).width = 10;
   ws.getColumn(13).width = 10;
   ws.getColumn(14).width = 10;
-
+  ws.getColumn(15).width = 10;
+  ws.getColumn(16).width = 10;
+  ws.getColumn(17).width = 10;
+  ws.getColumn(18).width = 10;
+  ws.getColumn(19).width = 10;
+  ws.getColumn(20).width = 10;
+  ws.getColumn(21).width = 10;
+  ws.getColumn(22).width = 10;
+  ws.getColumn(23).width = 10;
+  ws.getColumn(24).width = 10;
+  ws.getColumn(25).width = 10;
+  ws.getColumn(26).width = 10;
   const buf = await wb.xlsx.writeBuffer();
-  saveAs(new Blob([buf]), `Uang_Muka_${startDate}_sd_${endDate}.xlsx`);
+  saveAs(new Blob([buf]), `Kalkulasi_${startDate}_sd_${endDate}.xlsx`);
 };
 
 export const exportBkk = async (
@@ -3735,9 +3767,9 @@ export const exportRekonsiliasiBankDetail = async (
   );
 };
 
-export const exportStokFinance = async (items: any[], cabang: string) => {
+export const exportStok = async (items: any[], cabang: string) => {
   const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("Stok Finance");
+  const ws = wb.addWorksheet("Stok");
 
   const borderAll: Partial<ExcelJS.Borders> = {
     top: { style: "thin" },
@@ -3798,7 +3830,7 @@ export const exportStokFinance = async (items: any[], cabang: string) => {
   };
 
   ws.mergeCells("A1:G1");
-  ws.getCell("A1").value = `Stok Finance — Cabang ${cabang}`;
+  ws.getCell("A1").value = `Stok — Cabang ${cabang}`;
   ws.getCell("A1").font = { bold: true, size: 12 };
   ws.addRow([]);
 
@@ -3853,7 +3885,7 @@ export const exportStokFinance = async (items: any[], cabang: string) => {
   ws.getColumn(7).width = 12;
 
   const buf = await wb.xlsx.writeBuffer();
-  saveAs(new Blob([buf]), `StokFinance_${cabang}.xlsx`);
+  saveAs(new Blob([buf]), `Stok_${cabang}.xlsx`);
 };
 
 export const exportMasterUser = async (items: any[]) => {

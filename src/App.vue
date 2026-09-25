@@ -122,7 +122,7 @@ const goToLogin = () => {
           Pembaruan Tersedia!
         </v-card-title>
         <v-card-subtitle style="color: rgba(255, 255, 255, 0.8)">
-          Versi baru sistem keuangan telah dirilis.
+          Versi baru sistem kalkulasi telah dirilis.
         </v-card-subtitle>
       </v-card-item>
 

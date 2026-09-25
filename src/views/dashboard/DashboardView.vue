@@ -3,9 +3,10 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import { systemApi, type SystemInfo } from "@/api/systemApi";
-import { dashboardApi, type DashboardSummary } from "@/api/dashboardApi";
+import { dashboardApi, type DashboardSummary, type TodayActivityRow } from "@/api/dashboardApi";
 import {
   IconLayoutDashboard,
+  IconActivity,
   IconReceipt2,
   IconTransferOut,
   IconBook,
@@ -36,12 +37,7 @@ const greeting = computed(() => {
   return "Selamat Malam";
 });
 
-const canViewTransfer = computed(() => authStore.can("28", "view"));
-const canViewSetoran = computed(() => authStore.can("29", "view"));
-const canViewKasbon = computed(() => authStore.can("21", "view"));
-const canViewBkk = computed(() => authStore.can("22", "view"));
-const canViewJurnal = computed(() => authStore.can("26", "view"));
-const canViewVoucher = computed(() => authStore.can("30", "view"));
+const canViewKalkulasi = computed(() => authStore.can("22", "view"));
 
 const fmt = (v: number) => new Intl.NumberFormat("id-ID").format(v);
 const fmtCompact = (v: number) => {
@@ -56,20 +52,16 @@ const showChangelog = ref(false);
 const systemInfo = ref<SystemInfo | null>(null);
 
 const summaryData = ref<DashboardSummary>({
-  kasbon: { count: 0, total: 0 },
-  transfer: { count: 0, total: 0 },
-  setoran: { count: 0 },
   serverDate: "",
-  saldo: {
-    kas: { account: "", saldo: 0, count: 0 },
-    bank: { account: "", saldo: 0, count: 0 },
-  },
-  rekon: { selisihCount: 0 },
-  stok: { negativeCount: 0 },
-  voucherPt: { count: 0, total: 0 },
-  hutang: { count: 0, total: 0 },
+  belum: { count: 0 },
+  minta: { count: 0 },
+  nego: { count: 0 },
+  wait: { count: 0 },
 });
 const isSummaryLoading = ref(true);
+
+const todayActivity = ref<TodayActivityRow[]>([]);
+const isActivityLoading = ref(true);
 
 onMounted(async () => {
   try {
@@ -84,6 +76,13 @@ onMounted(async () => {
   } finally {
     isSummaryLoading.value = false;
   }
+  try {
+    todayActivity.value = await dashboardApi.getTodayActivity();
+  } catch (e) {
+    console.error("[dashboard] aktivitas hari ini gagal:", e);
+  } finally {
+    isActivityLoading.value = false;
+  }
 });
 
 const serverDateFormatted = computed(() => {
@@ -92,35 +91,44 @@ const serverDateFormatted = computed(() => {
   return `${d}/${m}/${y}`;
 });
 
-// Chart data — proporsi tugas
-const chartBars = computed(() => {
-  const bars = [];
-  if (canViewKasbon.value)
-    bars.push({
-      label: "Kasbon",
-      count: summaryData.value.kasbon.count,
-      color: "#ef5350",
-    });
-  if (canViewTransfer.value)
-    bars.push({
-      label: "Transfer",
-      count: summaryData.value.transfer.count,
-      color: "#ef6c00",
-    });
-  if (canViewSetoran.value)
-    bars.push({
-      label: "Setoran",
-      count: summaryData.value.setoran.count,
-      color: "#1565c0",
-    });
+// ── Aktivitas Hari Ini (9 kolom: NoKalkulasi, TglKalkulasi, Status,
+// Created, NoPermintaan, TglPermintaan, Peminta, NamaPermintaan,
+// DateCreate) ──
+const activityCount = computed(() => todayActivity.value.length);
 
-  const total = bars.reduce((s, b) => s + b.count, 0);
-  if (!total) return [];
-  return bars.map((b) => ({
-    ...b,
-    pct: Math.round((b.count / total) * 100),
-  }));
-});
+// "YYYY-MM-DD" / datetime → "DD-MM-YYYY"
+const fmtTgl = (v: string) => {
+  if (!v) return "—";
+  const m = String(v).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return String(v);
+};
+
+// "YYYY-MM-DD HH:mm:ss" (atau ISO) → "DD-MM-YYYY HH:MM"
+const fmtDateTime = (v: string) => {
+  if (!v) return "—";
+  const m = String(v).match(
+    /(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/
+  );
+  if (m) return `${m[3]}-${m[2]}-${m[1]} ${m[4]}:${m[5]}`;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}-${p(d.getMonth() + 1)}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+// Warna status mengikuti pewarnaan browse Minta Harga
+const statusStyle = (s: string) => {
+  if (s === "MINTA") return "color: #c62828; font-weight: 700;";
+  if (s === "WAIT") return "color: #2e7d32; font-weight: 700;";
+  if (s === "DONE") return "color: #111; font-weight: 700;";
+  if (s === "NEGO") return "color: #ff00e1; font-weight: 700;";
+  if (s === "BELUM") return "color: #6e6d6d; font-weight: 700;";
+  if (s === "CANCEL") return "color: #1565c0; text-decoration: line-through;";
+  return "";
+};
+
+
 </script>
 
 <template>
@@ -139,7 +147,7 @@ const chartBars = computed(() => {
             <span class="name">{{ authStore.userName || "User" }}</span> 👋
           </h2>
           <p class="greeting-sub">
-            Selamat datang di Sistem Manajemen Keuangan Finance Kencana Print.
+            Selamat datang di Sistem Kalkulasi Harga Kencana Print.
           </p>
         </div>
         <div class="info-pills">
@@ -149,7 +157,7 @@ const chartBars = computed(() => {
             title="Catatan rilis"
           >
             <IconInfoCircle :size="13" />
-            <span>Finance v{{ appVersion }}</span>
+            <span>Kalkulasi v{{ appVersion }}</span>
           </div>
           <div class="info-pill">
             <IconLayoutDashboard :size="13" />
@@ -205,73 +213,44 @@ const chartBars = computed(() => {
         </v-card>
       </v-dialog>
 
-      <!-- ── Saldo Kas & Bank — dua hero card ── -->
-      <div class="saldo-hero-grid">
-        <div class="saldo-hero" @click="router.push('/laporan/buku-besar')">
-          <div class="saldo-hero-left">
-            <div class="saldo-hero-label">
-              <IconBuildingBank :size="14" />
-              Saldo Kas — {{ summaryData.saldo.kas.account }}
-            </div>
-            <div class="saldo-hero-val">
-              <span v-if="isSummaryLoading" class="saldo-loading"
-                >Memuat...</span
-              >
-              <span v-else>Rp {{ fmt(summaryData.saldo.kas.saldo) }}</span>
-            </div>
-            <div class="saldo-hero-sub">
-              {{ summaryData.saldo.kas.count }} account · Klik untuk lihat Buku
-              Besar
-            </div>
-          </div>
-          <div class="saldo-hero-icon">
-            <IconBuildingBank :size="36" color="rgba(255,255,255,0.3)" />
-          </div>
-        </div>
-
-        <div
-          class="saldo-hero saldo-hero-bank"
-          @click="router.push('/laporan/buku-besar')"
-        >
-          <div class="saldo-hero-left">
-            <div class="saldo-hero-label">
-              <IconBuildingBank :size="14" />
-              Saldo Bank — {{ summaryData.saldo.bank.account }}
-            </div>
-            <div class="saldo-hero-val">
-              <span v-if="isSummaryLoading" class="saldo-loading"
-                >Memuat...</span
-              >
-              <span v-else>Rp {{ fmt(summaryData.saldo.bank.saldo) }}</span>
-            </div>
-            <div class="saldo-hero-sub">
-              {{ summaryData.saldo.bank.count }} account · Klik untuk lihat Buku
-              Besar
-            </div>
-          </div>
-          <div class="saldo-hero-icon">
-            <IconBuildingBank :size="36" color="rgba(255,255,255,0.3)" />
-          </div>
-        </div>
-      </div>
-
       <!-- ── Tugas Menunggu ── -->
       <h3 class="section-title">
         <IconAlertCircle :size="14" style="color: #c62828" />
         Tugas Menunggu
       </h3>
       <div class="task-grid">
-        <!-- Kasbon -->
-        <div
-          v-if="canViewKasbon"
+
+        <!-- BELUM -->
+        <div v-if="canViewKalkulasi"
+          class="task-card task-silver"
+          @click="
+            router.push({
+              path: '/transaksi/minta-harga',
+              query: { filter: 'BELUM' },
+            })
+          ">
+          <div class="task-top">
+            <div class="task-icon-wrap silver">
+              <IconAlertCircle :size="20" />
+            </div>
+            <IconChevronRight :size="14" class="task-arrow" />
+          </div>
+          <div class="task-count">
+            <span v-if="isSummaryLoading">—</span>
+            <span v-else>{{ summaryData.belum?.count ?? 0 }}</span>
+          </div>
+          <div class="task-label">BELUM</div>
+        </div>        
+
+        <!-- MINTA -->
+        <div v-if="canViewKalkulasi"
           class="task-card task-red"
           @click="
             router.push({
-              path: '/transaksi/uang-muka',
-              query: { filter: 'pending' },
+              path: '/transaksi/minta-harga',
+              query: { filter: 'MINTA' },
             })
-          "
-        >
+          ">
           <div class="task-top">
             <div class="task-icon-wrap red">
               <IconAlertCircle :size="20" />
@@ -280,212 +259,57 @@ const chartBars = computed(() => {
           </div>
           <div class="task-count">
             <span v-if="isSummaryLoading">—</span>
-            <span v-else>{{ summaryData.kasbon.count }}</span>
+            <span v-else>{{ summaryData.minta?.count ?? 0 }}</span>
           </div>
-          <div class="task-label">Kasbon Belum Selesai</div>
-          <div class="task-sub">
-            <span v-if="!isSummaryLoading"
-              >Rp {{ fmtCompact(summaryData.kasbon.total) }}</span
-            >
-          </div>
+          <div class="task-label">MINTA</div>
         </div>
 
-        <!-- Transfer -->
-        <div
-          v-if="canViewTransfer"
-          class="task-card task-orange"
+        <!-- NEGO -->
+        <div v-if="canViewKalkulasi"
+          class="task-card task-purple"
           @click="
             router.push({
-              path: '/transaksi/pengajuan-transfer',
-              query: { filter: 'pending' },
+              path: '/transaksi/minta-harga',
+              query: { filter: 'NEGO' },
             })
-          "
-        >
+          ">
           <div class="task-top">
-            <div class="task-icon-wrap orange">
-              <IconClock :size="20" />
-            </div>
-            <IconChevronRight :size="14" class="task-arrow" />
-          </div>
-          <div class="task-count">
-            <span v-if="isSummaryLoading">—</span>
-            <span v-else>{{ summaryData.transfer.count }}</span>
-          </div>
-          <div class="task-label">Transfer Menunggu</div>
-          <div class="task-sub">
-            <span v-if="!isSummaryLoading"
-              >Rp {{ fmtCompact(summaryData.transfer.total) }}</span
-            >
-          </div>
-        </div>
-
-        <!-- Setoran -->
-        <div
-          v-if="canViewSetoran"
-          class="task-card task-blue"
-          @click="
-            router.push({
-              path: '/transaksi/terima-setoran',
-              query: { filter: 'pending' },
-            })
-          "
-        >
-          <div class="task-top">
-            <div class="task-icon-wrap blue">
+            <div class="task-icon-wrap purple">
               <IconReceipt :size="20" />
             </div>
             <IconChevronRight :size="14" class="task-arrow" />
           </div>
           <div class="task-count">
             <span v-if="isSummaryLoading">—</span>
-            <span v-else>{{ summaryData.setoran.count }}</span>
+            <span v-else>{{ summaryData.nego?.count ?? 0 }}</span>
           </div>
-          <div class="task-label">Setoran Belum Verifikasi</div>
-          <div class="task-sub">Klik untuk verifikasi</div>
+          <div class="task-label">NEGO</div>
         </div>
 
-        <!-- Rekonsiliasi -->
+        <!-- WAIT -->
         <div
-          class="task-card"
-          :class="
-            summaryData.rekon?.selisihCount > 0 ? 'task-red' : 'task-green'
-          "
-          @click="router.push('/laporan/rekonsiliasi-bank')"
-        >
-          <div class="task-top">
-            <div
-              class="task-icon-wrap"
-              :class="summaryData.rekon?.selisihCount > 0 ? 'red' : 'green'"
-            >
-              <IconArrowsExchange :size="20" />
-            </div>
-            <IconChevronRight :size="14" class="task-arrow" />
-          </div>
-          <div class="task-count">
-            <span v-if="isSummaryLoading">—</span>
-            <span v-else>{{ summaryData.rekon?.selisihCount ?? 0 }}</span>
-          </div>
-          <div class="task-label">Rekonsiliasi Selisih</div>
-          <div class="task-sub">Bulan ini</div>
-        </div>
-
-        <!-- Stok Negatif -->
-        <div
-          class="task-card"
-          :class="
-            summaryData.stok?.negativeCount > 0 ? 'task-orange' : 'task-green'
-          "
-          @click="router.push('/laporan/stok-finance')"
-        >
-          <div class="task-top">
-            <div
-              class="task-icon-wrap"
-              :class="summaryData.stok?.negativeCount > 0 ? 'orange' : 'green'"
-            >
-              <IconList :size="20" />
-            </div>
-            <IconChevronRight :size="14" class="task-arrow" />
-          </div>
-          <div class="task-count">
-            <span v-if="isSummaryLoading">—</span>
-            <span v-else>{{ summaryData.stok?.negativeCount ?? 0 }}</span>
-          </div>
-          <div class="task-label">Stok Finance Negatif</div>
-          <div class="task-sub">
-            {{
-              summaryData.stok?.negativeCount > 0
-                ? "Perlu perhatian"
-                : "Semua normal"
-            }}
-          </div>
-        </div>
-
-        <!-- Voucher Belum PT -->
-        <div
-          v-if="canViewVoucher"
-          class="task-card"
-          :class="
-            summaryData.voucherPt?.count > 0 ? 'task-orange' : 'task-green'
-          "
+          v-if="canViewKalkulasi"
+          class="task-card task-green"
           @click="
             router.push({
-              path: '/transaksi/voucher-pembayaran',
-              query: { filter: 'pending' },
+              path: '/transaksi/minta-harga',
+              query: { filter: 'WAIT' },
             })
-          "
-        >
+          ">
           <div class="task-top">
-            <div
-              class="task-icon-wrap"
-              :class="summaryData.voucherPt?.count > 0 ? 'orange' : 'green'"
-            >
-              <IconReceipt2 :size="20" />
+            <div class="task-icon-wrap green">
+              <IconClock :size="20" />
             </div>
             <IconChevronRight :size="14" class="task-arrow" />
           </div>
           <div class="task-count">
             <span v-if="isSummaryLoading">—</span>
-            <span v-else>{{ summaryData.voucherPt?.count ?? 0 }}</span>
+            <span v-else>{{ summaryData.wait?.count ?? 0 }}</span>
           </div>
-          <div class="task-label">Voucher Belum PT</div>
-          <div class="task-sub">
-            <span v-if="!isSummaryLoading">
-              Rp {{ fmtCompact(summaryData.voucherPt?.total ?? 0) }}
-            </span>
-          </div>
+          <div class="task-label">WAIT</div>
         </div>
 
-        <!-- Daftar Hutang Belum Terbayar -->
-        <div
-          v-if="canViewVoucher"
-          class="task-card"
-          :class="summaryData.hutang?.count > 0 ? 'task-red' : 'task-green'"
-          @click="router.push('/laporan/daftar-hutang')"
-        >
-          <div class="task-top">
-            <div
-              class="task-icon-wrap"
-              :class="summaryData.hutang?.count > 0 ? 'red' : 'green'"
-            >
-              <IconFileInvoice :size="20" />
-            </div>
-            <IconChevronRight :size="14" class="task-arrow" />
-          </div>
-          <div class="task-count">
-            <span v-if="isSummaryLoading">—</span>
-            <span v-else>{{ summaryData.hutang?.count ?? 0 }}</span>
-          </div>
-          <div class="task-label">Hutang Belum Lunas</div>
-          <div class="task-sub">
-            <span v-if="!isSummaryLoading">
-              Rp {{ fmtCompact(summaryData.hutang?.total ?? 0) }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Chart proporsi tugas ── -->
-      <div v-if="!isSummaryLoading && chartBars.length" class="chart-section">
-        <h3 class="section-title">
-          <IconTrendingUp :size="14" style="color: #2e7d32" />
-          Proporsi Tugas Menunggu
-        </h3>
-        <div class="bar-chart-wrap">
-          <div v-for="bar in chartBars" :key="bar.label" class="bar-row">
-            <div class="bar-lbl">{{ bar.label }}</div>
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                :style="{ width: bar.pct + '%', background: bar.color }"
-              />
-            </div>
-            <div class="bar-info">
-              <span class="bar-count">{{ bar.count }}</span>
-              <span class="bar-pct">{{ bar.pct }}%</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      </div> 
 
       <!-- ── Aksi Cepat ── -->
       <h3 class="section-title" style="margin-top: 28px">
@@ -493,46 +317,70 @@ const chartBars = computed(() => {
         Aksi Cepat
       </h3>
       <div class="quick-actions">
+        
         <button
-          v-if="canViewBkk"
+          v-if="canViewKalkulasi"
           class="qa-btn"
-          @click="router.push('/transaksi/bkk')"
-        >
-          <IconTransferOut :size="18" class="qa-icon" />
-          <span>Buat BKK</span>
-        </button>
-        <button
-          v-if="canViewKasbon"
-          class="qa-btn"
-          @click="router.push('/transaksi/uang-muka')"
+          @click="router.push('/transaksi/minta-harga')"
         >
           <IconReceipt2 :size="18" class="qa-icon" />
-          <span>Penyelesaian Kasbon</span>
+          <span>Kalkulasi Harga</span>
         </button>
-        <button
-          v-if="canViewJurnal"
-          class="qa-btn"
-          @click="router.push('/transaksi/jurnal-umum')"
-        >
-          <IconBook :size="18" class="qa-icon" />
-          <span>Jurnal Umum</span>
-        </button>
-        <button
-          v-if="canViewSetoran"
-          class="qa-btn"
-          @click="router.push('/transaksi/terima-setoran')"
-        >
-          <IconReceipt :size="18" class="qa-icon" />
-          <span>Terima Setoran</span>
-        </button>
-        <button
-          v-if="canViewTransfer"
-          class="qa-btn"
-          @click="router.push('/transaksi/pengajuan-transfer')"
-        >
-          <IconTransfer :size="18" class="qa-icon" />
-          <span>Pengajuan Transfer</span>
-        </button>
+        
+
+      </div>
+
+      <!-- ── Aktivitas Hari Ini ── -->
+      <div class="activity-card">
+        <div class="activity-header">
+          <div class="activity-title">
+            <IconActivity :size="14" style="color: #7b1fa2" />
+            <span>Aktivitas Hari Ini</span>
+          </div>
+          <div class="activity-count">
+            <span v-if="isActivityLoading">…</span>
+            <span v-else>{{ activityCount }} transaksi</span>
+          </div>
+        </div>
+        <div class="activity-list">
+          <div v-if="isActivityLoading" class="activity-empty">
+            Memuat aktivitas…
+          </div>
+          <div v-else-if="activityCount === 0" class="activity-empty">
+            Belum ada kalkulasi hari ini.
+          </div>
+          <template v-else>
+            <div class="activity-row activity-head">
+              <span>NoKalkulasi</span>
+              <span>TglKalkulasi</span>
+              <span>Status</span>
+              <span>Created</span>
+              <span>Modified</span>
+              <span>NoPermintaan</span>
+              <span>TglPermintaan</span>
+              <span>Peminta</span>
+              <span>NamaPermintaan</span>
+              <span class="activity-jam">DateCreate</span>
+            </div>
+            <div
+              v-for="row in todayActivity"
+              :key="row.NoKalkulasi"
+              class="activity-row"
+              :title="`${row.NoKalkulasi} • ${row.NoPermintaan}`"
+            >
+              <span class="activity-nomor">{{ row.NoKalkulasi }}</span>
+              <span class="activity-dim">{{ fmtDateTime(row.TglKalkulasi) }}</span>
+              <span :style="statusStyle(row.Status)">{{ row.Status || "—" }}</span>
+              <span class="activity-user">{{ row.Created || "—" }}</span>
+              <span class="activity-modify">{{ row.modified || "—" }}</span>
+              <span class="activity-nomor">{{ row.NoPermintaan }}</span>
+              <span class="activity-dim">{{ fmtTgl(row.TglPermintaan) }}</span>
+              <span class="activity-user">{{ row.Peminta || "—" }}</span>
+              <span class="activity-nama">{{ row.NamaPermintaan || "—" }}</span>
+              <span class="activity-jam">{{ fmtDateTime(row.DateCreate) }}</span>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
   </PageLayout>
@@ -696,11 +544,17 @@ const chartBars = computed(() => {
   right: 0;
   height: 3px;
 }
+.task-silver::before {
+  background: #6e6d6d;
+}
 .task-red::before {
   background: #ef5350;
 }
+.task-purple::before {
+  background: #ff00e1;
+}
 .task-orange::before {
-  background: #ef6c00;
+  color: #e65100;
 }
 .task-blue::before {
   background: #1565c0;
@@ -723,9 +577,17 @@ const chartBars = computed(() => {
   align-items: center;
   justify-content: center;
 }
+.task-icon-wrap.silver {
+  background: #ffebee;
+  color: #6e6d6d;
+}
 .task-icon-wrap.red {
   background: #ffebee;
   color: #c62828;
+}
+.task-icon-wrap.purple {
+  background: #ffebee;
+  color: #ff00e1;
 }
 .task-icon-wrap.orange {
   background: #fff3e0;
@@ -750,8 +612,14 @@ const chartBars = computed(() => {
   line-height: 1;
   margin-bottom: 4px;
 }
+.task-silver .task-count {
+  color: #6e6d6d;
+}
 .task-red .task-count {
   color: #c62828;
+}
+.task-purple .task-count {
+  color: #ff00e1;
 }
 .task-orange .task-count {
   color: #e65100;
@@ -855,6 +723,113 @@ const chartBars = computed(() => {
 }
 .qa-icon {
   color: #2e7d32;
+}
+
+/* ── Aktivitas Hari Ini ── */
+.activity-card {
+  margin-top: 20px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.activity-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+.activity-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+}
+.activity-list {
+  max-height: 260px;
+  overflow: auto;
+}
+.activity-row {
+  display: grid;
+  grid-template-columns:
+    100px 130px 60px 70px 70px 100px 95px 70px minmax(160px, 1fr) 130px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 12px;
+  min-width: 1020px;
+}
+.activity-row:last-child {
+  border-bottom: none;
+}
+.activity-head {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+  background: #f9fafb;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.activity-nomor {
+  color: #1565c0;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.activity-dim {
+  color: #4b5563;
+  white-space: nowrap;
+}
+.activity-user {
+  color: #4b5563;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.activity-modified {
+  color: #4b5563;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.activity-nama {
+  color: #111827;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.activity-jam {
+  color: #6b7280;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.activity-empty {
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+@media (max-width: 768px) {
+  .activity-count {
+    font-size: 12px;
+  }
 }
 
 /* ── Changelog ── */

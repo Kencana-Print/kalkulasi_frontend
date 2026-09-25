@@ -22,666 +22,171 @@ const router = createRouter({
 
     // ── Master ────────────────────────────────────────────────────────
     {
-      path: "/master/cost-center",
-      name: "MasterCostCenter",
-      component: () => import("@/views/master/CostCenterView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "5",
-        title: "Master Cost Center",
-      },
-    },
-    {
-      path: "/master/account",
-      name: "MasterAccount",
-      component: () => import("@/views/master/AccountView.vue"),
+      path: "/master/jenis",
+      name: "MasterJenis",
+      component: () => import("@/views/master/JenisView.vue"),
       meta: {
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "6",
-        title: "Master Account",
+        title: "Master Jenis Kain",
       },
     },
     {
-      path: "/master/kelompok",
-      name: "MasterKelompok",
-      component: () => import("@/views/master/KelompokView.vue"),
+      path: "/master/harga",
+      name: "MasterHarga",
+      component: () => import("@/views/master/HargaView.vue"),
       meta: {
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "7",
-        title: "Master Kelompok",
+        title: "Master Harga Kain",
       },
     },
     {
-      path: "/master/jenis-pembayaran",
-      name: "MasterJenisPembayaran",
-      component: () => import("@/views/master/JenisPembayaranView.vue"),
+      path: "/master/gramasi",
+      name: "MasterGramasi",
+      component: () => import("@/views/master/GramasiView.vue"),
       meta: {
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "8",
-        title: "Master Jenis Pembayaran",
+        title: "Master Gramasi",
+      },
+    },
+    {
+      path: "/master/komponen",
+      name: "MasterKomponen",
+      component: () => import("@/views/master/KomponenView.vue"),
+      meta: {
+        layout: "DefaultLayout",
+        requiresAuth: true,
+        menuId: "9",
+        title: "Master Komponen",
+      },
+    },
+    {
+      path: "/master/pekerjaan",
+      name: "MasterPekerjaan",
+      component: () => import("@/views/master/PekerjaanView.vue"),
+      meta: {
+        layout: "DefaultLayout",
+        requiresAuth: true,
+        menuId: "11",
+        title: "Master Pekerjaan",
+      },
+    },
+    {
+      path: "/master/pekerjaan/create",
+      name: "MasterPekerjaanCreate",
+      component: () => import("@/views/master/PekerjaanFormView.vue"),
+      meta: {
+        layout: "DefaultLayout",
+        requiresAuth: true,
+        menuId: "11",
+        title: "Tambah Pekerjaan",
+        browseRoute: "MasterPekerjaan",
+      },
+    },
+    {
+      path: "/master/pekerjaan/edit/:kode",
+      name: "MasterPekerjaanEdit",
+      component: () => import("@/views/master/PekerjaanFormView.vue"),
+      meta: {
+        layout: "DefaultLayout",
+        requiresAuth: true,
+        menuId: "11",
+        title: "Ubah Pekerjaan",
+        browseRoute: "MasterPekerjaan",
+      },
+    },
+    {
+      path: "/master/biaya",
+      name: "MasterBiaya",
+      component: () => import("@/views/master/BiayaView.vue"),
+      meta: {
+        layout: "DefaultLayout",
+        requiresAuth: true,
+        menuId: "12",
+        title: "Master Biaya Pengerjaan",
+      },
+    },
+    {
+      path: "/master/biaya/create",
+      name: "MasterBiayaCreate",
+      component: () => import("@/views/master/BiayaFormView.vue"),
+      meta: {
+        layout: "DefaultLayout",
+        requiresAuth: true,
+        menuId: "12",
+        title: "Tambah Biaya Pengerjaan",
+        browseRoute: "MasterBiaya",
+      },
+    },
+    {
+      path: "/master/biaya/edit/:kode",
+      name: "MasterBiayaEdit",
+      component: () => import("@/views/master/BiayaFormView.vue"),
+      meta: {
+        layout: "DefaultLayout",
+        requiresAuth: true,
+        menuId: "12",
+        title: "Ubah Biaya Pengerjaan",
+        browseRoute: "MasterBiaya",
       },
     },
 
     // ── Transaksi ─────────────────────────────────────────────────────
     {
-      path: "/transaksi/uang-muka",
-      name: "UangMukaBrowse",
-      component: () => import("@/views/transaksi/UangMukaView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "21",
-        title: "Uang Muka / Kasbon",
-      },
-    },
-    {
-      path: "/transaksi/uang-muka/create",
-      name: "UangMukaCreate",
-      component: () => import("@/views/transaksi/UangMukaFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "21",
-        title: "Tambah Kasbon",
-        browseRoute: "UangMukaBrowse",
-      },
-    },
-    {
-      path: "/transaksi/uang-muka/edit/:nomor",
-      name: "UangMukaEdit",
-      component: () => import("@/views/transaksi/UangMukaFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "21",
-        title: "Ubah Kasbon",
-        browseRoute: "UangMukaBrowse",
-      },
-    },
-    {
-      path: "/transaksi/uang-muka/selesai/:nomor",
-      name: "UangMukaSelesai",
-      component: () =>
-        import("@/views/transaksi/UangMukaPenyelesaianFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "21",
-        title: "Penyelesaian Kasbon",
-        browseRoute: "UangMukaBrowse",
-      },
-    },
-    {
-      path: "/transaksi/uang-muka/print/:nomor",
-      name: "UangMukaPrint",
-      component: () => import("@/views/transaksi/UangMukaPrintView.vue"),
-      meta: {
-        layout: "BlankLayout",
-        requiresAuth: true,
-        title: "Cetak Kasbon",
-      },
-    },
-    {
-      path: "/transaksi/uang-muka/print-selesai/:nomor",
-      name: "UangMukaPrintSelesai",
-      component: () =>
-        import("@/views/transaksi/UangMukaPenyelesaianPrintView.vue"),
-      meta: {
-        layout: "BlankLayout",
-        requiresAuth: true,
-        title: "Cetak Penyelesaian",
-      },
-    },
-    // MUTASI OUT
-    {
-      path: "/transaksi/mutasi-out",
-      name: "MutasiOut",
-      component: () => import("@/views/transaksi/MutasiOutView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "31",
-        title: "Mutasi Out Garmen",
-      },
-    },
-    {
-      path: "/transaksi/mutasi-out/create",
-      name: "MutasiOutCreate",
-      component: () => import("@/views/transaksi/MutasiOutFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "31",
-        title: "Buat Mutasi Out",
-        browseRoute: "MutasiOut",
-      },
-    },
-    {
-      path: "/transaksi/mutasi-out/edit/:nomor",
-      name: "MutasiOutEdit",
-      component: () => import("@/views/transaksi/MutasiOutFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "31",
-        title: "Ubah Mutasi Out",
-        browseRoute: "MutasiOut",
-      },
-    },
-    {
-      path: "/transaksi/mutasi-out/print/:nomor",
-      name: "MutasiOutPrint",
-      component: () => import("@/views/transaksi/MutasiOutPrintView.vue"),
-      meta: {
-        layout: "BlankLayout",
-        requiresAuth: true,
-        title: "Cetak Mutasi Out",
-      },
-    },
-
-    // BKM
-    {
-      path: "/transaksi/bkm",
-      name: "BkmBrowse",
-      component: () => import("@/views/transaksi/BkmView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "23",
-        title: "Bukti Kas Masuk",
-      },
-    },
-    {
-      path: "/transaksi/bkm/create",
-      name: "BkmCreate",
-      component: () => import("@/views/transaksi/BkmFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "23",
-        title: "Tambah BKM",
-        browseRoute: "BkmBrowse",
-      },
-    },
-    {
-      path: "/transaksi/bkm/edit/:nomor",
-      name: "BkmEdit",
-      component: () => import("@/views/transaksi/BkmFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "23",
-        title: "Ubah BKM",
-        browseRoute: "BkmBrowse",
-      },
-    },
-    {
-      path: "/transaksi/bkm/print/:nomor",
-      name: "BkmPrint",
-      component: () => import("@/views/transaksi/BkmPrintView.vue"),
-      meta: { layout: "BlankLayout", requiresAuth: true, title: "Cetak BKM" },
-    },
-    // BKK
-    {
-      path: "/transaksi/bkk",
-      name: "BkkBrowse",
-      component: () => import("@/views/transaksi/BkkView.vue"),
+      path: "/transaksi/minta-harga",
+      name: "MintaHarga",
+      component: () => import("@/views/transaksi/MintaHargaView.vue"),
       meta: {
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "22",
-        title: "Bukti Kas Keluar",
+        title: "Permintaan Harga",
       },
     },
     {
-      path: "/transaksi/bkk/create",
-      name: "BkkCreate",
-      component: () => import("@/views/transaksi/BkkFormView.vue"),
+      path: "/transaksi/minta-harga/edit/:nomor",
+      name: "MintaHargaEdit",
+      component: () => import("@/views/transaksi/KalkulasiFormView.vue"),
       meta: {
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "22",
-        title: "Tambah BKK",
-        browseRoute: "BkkBrowse",
+        title: "Ubah Kalkulasi (via Permintaan Harga)",
+        browseRoute: "MintaHarga",
       },
     },
+    // ── Kalkulasi Form — menu browse Kalkulasi disembunyikan, Tutup/sukses
+    // kembali ke browse Permintaan Harga (browseRoute: "MintaHarga").
     {
-      path: "/transaksi/bkk/edit/:nomor",
-      name: "BkkEdit",
-      component: () => import("@/views/transaksi/BkkFormView.vue"),
+      path: "/transaksi/kalkulasi/create",
+      name: "KalkulasiCreate",
+      component: () => import("@/views/transaksi/KalkulasiFormView.vue"),
       meta: {
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "22",
-        title: "Ubah BKK",
-        browseRoute: "BkkBrowse",
+        title: "Buat Kalkulasi Harga",
+        browseRoute: "MintaHarga",
       },
     },
     {
-      path: "/transaksi/bkk/print/:nomor",
-      name: "BkkPrint",
-      component: () => import("@/views/transaksi/BkkPrintView.vue"),
-      meta: { layout: "BlankLayout", requiresAuth: true, title: "Cetak BKK" },
-    },
-    // BBM
-    {
-      path: "/transaksi/bbm",
-      name: "BbmBrowse",
-      component: () => import("@/views/transaksi/BbmView.vue"),
+      path: "/transaksi/kalkulasi/edit/:nomor",
+      name: "KalkulasiEdit",
+      component: () => import("@/views/transaksi/KalkulasiFormView.vue"),
       meta: {
         layout: "DefaultLayout",
         requiresAuth: true,
-        menuId: "25",
-        title: "Bukti Bank Masuk",
+        menuId: "22",
+        title: "Ubah Kalkulasi",
+        browseRoute: "MintaHarga",
       },
     },
-    {
-      path: "/transaksi/bbm/create",
-      name: "BbmCreate",
-      component: () => import("@/views/transaksi/BbmFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "25",
-        title: "Tambah BBM",
-        browseRoute: "BbmBrowse",
-      },
-    },
-    {
-      path: "/transaksi/bbm/edit/:nomor",
-      name: "BbmEdit",
-      component: () => import("@/views/transaksi/BbmFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "25",
-        title: "Ubah BBM",
-        browseRoute: "BbmBrowse",
-      },
-    },
-    {
-      path: "/transaksi/bbm/print/:nomor",
-      name: "BbmPrint",
-      component: () => import("@/views/transaksi/BbmPrintView.vue"),
-      meta: { layout: "BlankLayout", requiresAuth: true, title: "Cetak BBM" },
-    },
-    // BBK
-    {
-      path: "/transaksi/bbk",
-      name: "BbkBrowse",
-      component: () => import("@/views/transaksi/BbkView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "24",
-        title: "Bukti Bank Keluar",
-      },
-    },
-    {
-      path: "/transaksi/bbk/create",
-      name: "BbkCreate",
-      component: () => import("@/views/transaksi/BbkFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "24",
-        title: "Tambah BBK",
-        browseRoute: "BbkBrowse",
-      },
-    },
-    {
-      path: "/transaksi/bbk/edit/:nomor",
-      name: "BbkEdit",
-      component: () => import("@/views/transaksi/BbkFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "24",
-        title: "Ubah BBK",
-        browseRoute: "BbkBrowse",
-      },
-    },
-    {
-      path: "/transaksi/bbk/print/:nomor",
-      name: "BbkPrint",
-      component: () => import("@/views/transaksi/BbkPrintView.vue"),
-      meta: { layout: "BlankLayout", requiresAuth: true, title: "Cetak BBK" },
-    },
-    // Jurnal Umum
-    {
-      path: "/transaksi/jurnal-umum",
-      name: "JurnalUmumBrowse",
-      component: () => import("@/views/transaksi/JurnalUmumView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "26",
-        title: "Jurnal Umum",
-      },
-    },
-    {
-      path: "/transaksi/jurnal-umum/create",
-      name: "JurnalUmumCreate",
-      component: () => import("@/views/transaksi/JurnalUmumFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "26",
-        title: "Tambah Jurnal Umum",
-        browseRoute: "JurnalUmumBrowse",
-      },
-    },
-    {
-      path: "/transaksi/jurnal-umum/edit/:nomor",
-      name: "JurnalUmumEdit",
-      component: () => import("@/views/transaksi/JurnalUmumFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "26",
-        title: "Ubah Jurnal Umum",
-        browseRoute: "JurnalUmumBrowse",
-      },
-    },
-    // Rekonsiliasi Bank
-    {
-      path: "/transaksi/rekonsiliasi-bank",
-      name: "RekonsiliasiBankBrowse",
-      component: () => import("@/views/transaksi/RekonsiliasiBankView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "27",
-        title: "Rekonsiliasi Bank",
-      },
-    },
-    // Pengajuan Transfer
-    {
-      path: "/transaksi/pengajuan-transfer",
-      name: "PengajuanTransferBrowse",
-      component: () => import("@/views/transaksi/PengajuanTransferView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "28",
-        title: "Pengajuan Transfer",
-      },
-    },
-    {
-      path: "/transaksi/pengajuan-transfer/create",
-      name: "PengajuanTransferCreate",
-      component: () =>
-        import("@/views/transaksi/PengajuanTransferFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "28",
-        title: "Baru Pengajuan Transfer",
-        browseRoute: "PengajuanTransferBrowse",
-      },
-    },
-    {
-      path: "/transaksi/pengajuan-transfer/edit/:nomor",
-      name: "PengajuanTransferEdit",
-      component: () =>
-        import("@/views/transaksi/PengajuanTransferFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "28",
-        title: "Ubah Pengajuan Transfer",
-        browseRoute: "PengajuanTransferBrowse",
-      },
-    },
-    {
-      path: "/transaksi/pengajuan-transfer/realisasi/:nomor",
-      name: "PengajuanTransferRealisasi",
-      component: () =>
-        import("@/views/transaksi/PengajuanTransferFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "28",
-        title: "Realisasi Pengajuan Transfer",
-        browseRoute: "PengajuanTransferBrowse",
-        isRealisasi: true,
-      },
-    },
-    {
-      path: "/transaksi/pengajuan-transfer/print/:nomor",
-      name: "PengajuanTransferPrint",
-      component: () =>
-        import("@/views/transaksi/PengajuanTransferPrintView.vue"),
-      meta: {
-        layout: "BlankLayout",
-        requiresAuth: true,
-        title: "Cetak Pengajuan Transfer",
-      },
-    },
-    // Terima Setoran
-    {
-      path: "/transaksi/terima-setoran",
-      name: "TerimaSetoranBrowse",
-      component: () => import("@/views/transaksi/TerimaSetoranView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "29",
-        title: "Terima Setoran",
-      },
-    },
-    {
-      path: "/transaksi/terima-setoran",
-      name: "TerimaSetoranBrowse",
-      component: () => import("@/views/transaksi/TerimaSetoranView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "29",
-        title: "Terima Setoran",
-      },
-    },
-    {
-      path: "/transaksi/terima-setoran/form/:nomor",
-      name: "TerimaSetoranForm",
-      component: () => import("@/views/transaksi/TerimaSetoranFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "29",
-        title: "Terima Setoran Kasir",
-        browseRoute: "TerimaSetoranBrowse",
-      },
-    },
-    {
-      path: "/transaksi/voucher-pembayaran",
-      name: "VoucherPembayaran",
-      component: () => import("@/views/transaksi/VoucherPembayaranView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "30",
-        title: "Voucher Pembayaran",
-      },
-    },
-    {
-      path: "/transaksi/voucher-pembayaran/create",
-      name: "VoucherPembayaranCreate",
-      component: () =>
-        import("@/views/transaksi/VoucherPembayaranFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "30",
-        title: "Buat Voucher",
-      },
-    },
-    {
-      path: "/transaksi/voucher-pembayaran/edit/:nomor",
-      name: "VoucherPembayaranEdit",
-      component: () =>
-        import("@/views/transaksi/VoucherPembayaranFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "30",
-        title: "Ubah Voucher",
-      },
-    },
-    {
-      path: "/transaksi/voucher-pembayaran/print/:nomor",
-      name: "VoucherPembayaranPrint",
-      component: () =>
-        import("@/views/transaksi/VoucherPembayaranPrintView.vue"),
-      meta: {
-        layout: "BlankLayout",
-        requiresAuth: true,
-        title: "Cetak Voucher",
-      },
-    },
-    {
-      path: "/transaksi/voucher-pembayaran/realisasi/create",
-      name: "RealisasiVoucherCreate",
-      component: () =>
-        import("@/views/transaksi/VoucherPembayaranFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "30",
-        title: "Realisasi Voucher",
-        isRealisasi: true,
-      },
-    },
-    {
-      path: "/transaksi/voucher-pembayaran/realisasi/edit/:nomor",
-      name: "RealisasiVoucherEdit",
-      component: () =>
-        import("@/views/transaksi/VoucherPembayaranFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "30",
-        title: "Edit Realisasi Voucher",
-        isRealisasi: true,
-      },
-    },
-
-    // ── Posting ──
-    {
-      path: "/posting/pembayaran-customer",
-      name: "PembayaranCustomerBrowse",
-      component: () => import("@/views/posting/PembayaranCustomerView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "51",
-        title: "Pembayaran Customer",
-      },
-    },
-    {
-      path: "/posting/pembayaran-customer/form",
-      name: "PembayaranCustomerForm",
-      component: () => import("@/views/posting/PembayaranCustomerFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "51",
-        title: "Posting Pembayaran Customer",
-        browseRoute: "PembayaranCustomerBrowse",
-      },
-    },
-    {
-      path: "/posting/pembayaran-cust-kaosan",
-      name: "PembayaranCustKaosanBrowse",
-      component: () => import("@/views/posting/PembayaranCustKaosanView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "52",
-        title: "Pembayaran Customer Kaosan",
-      },
-    },
-    {
-      path: "/posting/pembayaran-cust-kaosan/form",
-      name: "PembayaranCustKaosanForm",
-      component: () =>
-        import("@/views/posting/PembayaranCustKaosanFormView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        menuId: "52",
-        title: "Posting Pembayaran Customer Kaosan",
-        browseRoute: "PembayaranCustKaosanBrowse",
-      },
-    },
-
-    // ── Laporan ──
-    {
-      path: "/laporan/list-jurnal",
-      name: "ListJurnal",
-      component: () => import("@/views/laporan/ListJurnalView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        // tidak ada menuId
-        title: "List Jurnal",
-      },
-    },
-    {
-      path: "/laporan/buku-besar",
-      name: "LapBukuBesar",
-      component: () => import("@/views/laporan/BukuBesarView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        title: "Buku Besar",
-      },
-    },
-    {
-      path: "/laporan/kasbon-belum-selesai",
-      name: "LapKasbonBelumSelesai",
-      component: () => import("@/views/laporan/KasbonBelumSelesaiView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        title: "Kasbon Belum Selesai",
-      },
-    },
-    {
-      path: "/laporan/rekonsiliasi-bank",
-      name: "LapRekonsiliasi",
-      component: () => import("@/views/laporan/LapRekonsiliasiBankView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        title: "Rekonsiliasi Bank",
-      },
-    },
-    {
-      path: "/laporan/stok-finance",
-      name: "LapStokFinance",
-      component: () => import("@/views/laporan/StokFinanceView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        title: "Stok Finance",
-      },
-    },
-    {
-      path: "/laporan/daftar-hutang",
-      name: "LapDaftarHutang",
-      component: () => import("@/views/laporan/DaftarHutangView.vue"),
-      meta: {
-        layout: "DefaultLayout",
-        requiresAuth: true,
-        title: "Daftar Hutang",
-      },
-    },
-
+    
     // ── Tools ─────────────────────────────────────────────────────────
     {
       path: "/tools/users",
@@ -746,7 +251,7 @@ const router = createRouter({
 // ── Navigation Guard ──────────────────────────────────────────────────
 router.beforeEach((to) => {
   const authStore = useAuthStore();
-  document.title = `${String(to.meta?.title || to.name || "Finance")} — FINANCE`;
+  document.title = `${String(to.meta?.title || to.name || "Kalkulasi")} — KALKULASI`;
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated)
     return { name: "Login" };

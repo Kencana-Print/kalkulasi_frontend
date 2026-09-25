@@ -6,7 +6,7 @@ import { useToast } from "vue-toastification";
 import { IconEye, IconEyeOff, IconLogin } from "@tabler/icons-vue";
 
 import logoUrl from "@/assets/logo.png";
-import bgImage from "@/assets/bg-finance.jpg";
+import bgImage from "@/assets/bg-kalkulasi.jpg";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -77,32 +77,11 @@ const onUsernameEnter = () => {
           <div class="brand-logo-wrap">
             <img :src="logoUrl" alt="Logo" class="brand-logo-img" />
           </div>
-          <h1 class="brand-name">FINANCE</h1>
-          <p class="brand-tagline">Sistem Manajemen Keuangan</p>
+          <h1 class="brand-name">KALKULASI</h1>
+          <p class="brand-tagline">Kalkulasi Harga</p>
         </div>
 
-        <div class="brand-features">
-          <div class="feature-item">
-            <span class="feature-dot" />
-            <span>Kas & Bank — BKM, BKK, BBM, BBK</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-dot" />
-            <span>Kasbon & Penyelesaian</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-dot" />
-            <span>Jurnal Umum & Buku Besar</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-dot" />
-            <span>Rekonsiliasi Bank</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-dot" />
-            <span>Pembayaran Customer</span>
-          </div>
-        </div>
+        
 
         <div class="brand-version">v{{ appVersion }}</div>
       </div>
@@ -188,7 +167,7 @@ const onUsernameEnter = () => {
   background: linear-gradient(
     135deg,
     rgba(13, 43, 13, 0.82) 0%,
-    rgba(27, 94, 32, 0.78) 100%
+    rgba(4, 172, 250, 0.78) 100%
   );
   position: relative;
   overflow: hidden;
@@ -254,15 +233,15 @@ const onUsernameEnter = () => {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Left panel ── */
+/* ── Left panel judul── */
 .login-left {
   width: 320px;
   flex-shrink: 0;
-  background: linear-gradient(160deg, #1b5e20, #2e7d32 60%, #388e3c);
+  background: linear-gradient(160deg, #427444, #2e7d32 60%, #2e7d32);
   padding: 40px 32px;
   display: flex;
   flex-direction: column;
-  color: white;
+  color: rgb(255, 255, 255);
 }
 .brand-area {
   margin-bottom: 36px;
@@ -271,7 +250,7 @@ const onUsernameEnter = () => {
   width: 60px;
   height: 60px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -290,7 +269,7 @@ const onUsernameEnter = () => {
 }
 .brand-tagline {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgb(251, 255, 1);
   margin: 0;
 }
 

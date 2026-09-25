@@ -4,9 +4,9 @@ import { createVuetify } from "vuetify";
 import * as components from "vuetify/components";
 import * as directives from "vuetify/directives";
 
-// ─── Tema FINANCE — Hijau Emerald ───────────────────────────────────────────
-// Beda dari Garmen (biru #1565c0) → Finance pakai hijau teal #1b5e20 / #2e7d32
-const financeTheme = {
+// ─── Tema KALKULASI — Hijau Emerald ─────────────────────────────────────────
+// Beda dari Garmen (biru #1565c0) → Kalkulasi pakai hijau teal #1b5e20 / #2e7d32
+const kalkulasiTheme = {
   dark: false,
   colors: {
     // Primary — hijau tua elegan
@@ -33,7 +33,7 @@ const financeTheme = {
   },
 };
 
-const financeDarkTheme = {
+const kalkulasiDarkTheme = {
   dark: true,
   colors: {
     primary:         "#66bb6a",
@@ -55,10 +55,10 @@ export default createVuetify({
   components,
   directives,
   theme: {
-    defaultTheme: "financeTheme",
+    defaultTheme: "kalkulasiTheme",
     themes: {
-      financeTheme,
-      financeDarkTheme,
+      kalkulasiTheme,
+      kalkulasiDarkTheme,
     },
   },
   defaults: {
