@@ -1,9 +1,44 @@
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import type {
-  MutasiOutRow,
-  MutasiOutDetail,
-} from "@/api/transaksi/mutasiOutApi";
+
+// Tipe lokal — modul asal (finance: mutasiOutApi / daftarHutang) tidak ada
+// di app Kalkulasi, field mengikuti pemakaian di fungsi export bawah.
+export interface MutasiOutRow {
+  Nomor: string;
+  Jenis: string;
+  Tanggal: string;
+  Cab: string;
+  Tujuan: string;
+  Keterangan: string;
+}
+
+export interface MutasiOutDetail {
+  NoPermintaan: string;
+  Kode: string;
+  Nama: string;
+  Spesifikasi: string;
+  Satuan: string;
+  Jumlah: number;
+}
+
+export interface DaftarHutangRow {
+  Nomor: string;
+  Tanggal: string;
+  JatuhTempo: string;
+  SupKode: string;
+  Nama: string;
+  Total: number;
+  Voucher: number;
+  Bayar: number;
+}
+
+export interface DaftarHutangDetail {
+  Nomor: string;
+  NomorVoucher: string;
+  TanggalVoucher: string;
+  Total: number;
+  StatusRealisasi: number | string;
+}
 
 
 // --- Master Data Export ---
@@ -497,7 +532,7 @@ export const exportKalkulasi = async (
     setC(row.getCell(7), item.NamaPekerjaan, "left");
     setN(row.getCell(8), item.RencanaOrder);
     setN(row.getCell(9), item.OrderTerakhir);
-    setN(row.getCell(10), item.Kain, "left");
+    setC(row.getCell(10), item.Kain, "left");
     setC(row.getCell(11), item.Panjang, "left");
     setC(row.getCell(12), item.Lebar, "left");
     setC(row.getCell(13), item.Ukuran, "left");
@@ -509,9 +544,9 @@ export const exportKalkulasi = async (
     setC(row.getCell(19), item.HargaMAP, "right");
     setC(row.getCell(20), item.HargaKalkulasi, "right");
     setC(row.getCell(21), item.TglKalkulasi, "center");
-    setN(row.getCell(22), item.NomorKalkulasi, "left");
-    setN(row.getCell(23), item.UsrKalkulasi, "left");
-    setN(row.getCell(24), item.status, "center");
+    setC(row.getCell(22), item.NomorKalkulasi, "left");
+    setC(row.getCell(23), item.UsrKalkulasi, "left");
+    setC(row.getCell(24), item.status, "center");
     setC(row.getCell(25), item.KetKalkulasi, "left");
     setC(row.getCell(26), item.KetBeli, "left");
 
