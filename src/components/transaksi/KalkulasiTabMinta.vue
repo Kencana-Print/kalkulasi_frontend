@@ -1,7 +1,35 @@
 <script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { IconPhoto } from "@tabler/icons-vue";
+
 const props = defineProps<{ formData: any }>();
 
 const fmt = (v: any) => (Number(v) || 0).toLocaleString("id-ID");
+
+// ── Gambar otomatis (sumber sama persis dengan Tab Gambar) ──
+// apathimage + '\mintaharga\' + nomorMH + '.jpg' via proxy same-origin.
+const IMAGE_BASE_URL =
+  (import.meta as any).env?.VITE_MINTAHARGA_IMAGE_URL || "/api/images/mintaharga";
+
+const nomorMH = computed(
+  () => props.formData.mintaHarga?.nomor || props.formData.mintaHargaNomor || "",
+);
+const imgSrc = computed(() => (nomorMH.value ? `${IMAGE_BASE_URL}/${nomorMH.value}.jpg` : ""));
+const imgError = ref(false);
+watch(nomorMH, () => (imgError.value = false));
+
+// ── Keterangan auto-height: tumbuh mengikuti isi (tanpa scroll untuk
+// teks pendek), tetap scroll vertikal kalau teks melebihi max-height. ──
+const ketText = computed(() => props.formData.mintaHarga?.ket || "");
+const ketRef = ref<HTMLTextAreaElement | null>(null);
+const autoResizeKet = () => {
+  const el = ketRef.value;
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+};
+watch(ketText, () => nextTick(autoResizeKet));
+onMounted(() => nextTick(autoResizeKet));
 </script>
 
 <template>
@@ -11,76 +39,121 @@ const fmt = (v: any) => (Number(v) || 0).toLocaleString("id-ID");
     </div>
 
     <template v-else>
-      <div class="section-card">
-        <div class="sec-title">Referensi Permintaan Harga</div>
-        <div class="fr">
-          <label class="lbl">No. Minta Harga</label>
-          <input :value="formData.mintaHarga.nomor" readonly class="inp ro" style="width: 160px; font-weight: 700; color: #1565c0" />
-          <label class="lbl ml-2" style="width: 55px">Status</label>
-          <input :value="formData.mintaHarga.status" readonly class="inp ro" style="width: 110px" />
+      <div class="mt-columns">
+        <div class="section-card mt-main">
+          <div class="sec-title">Referensi Permintaan Harga</div>
+          <div class="form-grid">
+            <div class="fr">
+              <div class="grp g-nomor">
+                <label class="lbl lbl-main">No. Minta Harga</label>
+                <input :value="formData.mintaHarga.nomor" readonly class="inp ro flex-1 inp-bold" />
+              </div>
+              <div class="grp g-status">
+                <label class="lbl lbl-sub">Status</label>
+                <input :value="formData.mintaHarga.status" readonly class="inp ro flex-1" />
+              </div>
+            </div>
+            <div class="fr">
+              <div class="grp">
+                <label class="lbl lbl-main">Nama</label>
+                <input :value="formData.mintaHarga.nama" readonly class="inp ro flex-1" />
+              </div>
+            </div>
+            <div class="fr">
+              <div class="grp">
+                <label class="lbl lbl-main">Customer</label>
+                <input :value="`${formData.mintaHarga.custKode} — ${formData.mintaHarga.custNama}`" readonly class="inp ro flex-1" />
+              </div>
+            </div>
+            <div class="fr">
+              <div class="grp g-sales">
+                <label class="lbl lbl-main">Sales</label>
+                <input :value="`${formData.mintaHarga.salesKode} — ${formData.mintaHarga.salesNama}`" readonly class="inp ro flex-1" />
+              </div>
+              <div class="grp g-divisi">
+                <label class="lbl lbl-sub">Divisi</label>
+                <input :value="formData.mintaHarga.divisi" readonly class="inp ro flex-1" />
+              </div>
+            </div>
+            <div class="fr">
+              <div class="grp">
+                <label class="lbl lbl-main">Tanggal</label>
+                <input :value="formData.mintaHarga.tanggal?.substring(0, 10)" readonly class="inp ro flex-1" />
+              </div>
+              <div class="grp">
+                <label class="lbl lbl-sub2">Last Order</label>
+                <input :value="formData.mintaHarga.dateOrder?.substring(0, 10)" readonly class="inp ro flex-1" />
+              </div>
+            </div>
+            <div class="fr">
+              <div class="grp">
+                <label class="lbl lbl-main">Rencana Order</label>
+                <input :value="fmt(formData.mintaHarga.jmlOrder)" readonly class="inp ro tr flex-1" />
+              </div>
+              <div class="grp">
+                <label class="lbl lbl-sub2">Harga Jual</label>
+                <input :value="fmt(formData.mintaHarga.hargaJual)" readonly class="inp ro tr flex-1" />
+              </div>
+              <div class="grp">
+                <label class="lbl lbl-sub">Budget</label>
+                <input :value="fmt(formData.mintaHarga.budget)" readonly class="inp ro tr flex-1" />
+              </div>
+            </div>
+            <div class="fr">
+              <div class="grp g-kain">
+                <label class="lbl lbl-main">Kain</label>
+                <input :value="formData.mintaHarga.kain" readonly class="inp ro flex-1" />
+              </div>
+              <div class="grp g-ukuran">
+                <label class="lbl lbl-sub">Ukuran</label>
+                <input :value="formData.mintaHarga.ukuran" readonly class="inp ro flex-1" />
+              </div>
+            </div>
+            <div class="fr">
+              <div class="grp g-panjang">
+                <label class="lbl lbl-main">Panjang x Lebar</label>
+                <input :value="formData.mintaHarga.panjang" readonly class="inp ro tr flex-1" />
+                <span class="mx-1">x</span>
+                <input :value="formData.mintaHarga.lebar" readonly class="inp ro tr flex-1" />
+              </div>
+              <div class="grp g-gramasi">
+                <label class="lbl lbl-sub">Gramasi</label>
+                <input :value="formData.mintaHarga.gramasi" readonly class="inp ro flex-1" />
+              </div>
+            </div>
+            <div class="fr">
+              <div class="grp">
+                <label class="lbl lbl-main">Finishing</label>
+                <input :value="formData.mintaHarga.finishing" readonly class="inp ro flex-1" />
+                <span v-if="formData.mintaHarga.sublimGrade" class="badge-legacy ml-2">
+                  Sublim {{ formData.mintaHarga.sublimGrade === "premium" ? "Premium" : "Medium" }}
+                </span>
+              </div>
+            </div>
+            <div class="fr">
+              <label class="lbl lbl-main">Keterangan</label>
+            </div>
+            <textarea ref="ketRef" :value="formData.mintaHarga.ket" readonly class="ket-textarea" rows="6" />
+          </div>
         </div>
-        <div class="fr">
-          <label class="lbl">Nama</label>
-          <input :value="formData.mintaHarga.nama" readonly class="inp ro flex-1" />
-        </div>
-        <div class="fr">
-          <label class="lbl">Customer</label>
-          <input :value="`${formData.mintaHarga.custKode} — ${formData.mintaHarga.custNama}`" readonly class="inp ro flex-1" />
-        </div>
-        <div class="fr">
-          <label class="lbl">Sales</label>
-          <input :value="`${formData.mintaHarga.salesKode} — ${formData.mintaHarga.salesNama}`" readonly class="inp ro flex-1" />
-          <label class="lbl ml-2" style="width: 55px">Divisi</label>
-          <input :value="formData.mintaHarga.divisi" readonly class="inp ro" style="width: 110px" />
-        </div>
-        <div class="fr">
-          <label class="lbl">Tanggal</label>
-          <input :value="formData.mintaHarga.tanggal?.substring(0, 10)" readonly class="inp ro" style="width: 120px" />
-          <label class="lbl ml-2" style="width: 90px">Last Order</label>
-          <input :value="formData.mintaHarga.dateOrder?.substring(0, 10)" readonly class="inp ro" style="width: 120px" />
-        </div>
-        <div class="fr">
-          <label class="lbl">Rencana Order</label>
-          <input :value="fmt(formData.mintaHarga.jmlOrder)" readonly class="inp ro tr" style="width: 120px" />
-          <label class="lbl ml-2" style="width: 90px">Harga Jual</label>
-          <input :value="fmt(formData.mintaHarga.hargaJual)" readonly class="inp ro tr" style="width: 140px" />
-          <label class="lbl ml-2" style="width: 60px">Budget</label>
-          <input :value="fmt(formData.mintaHarga.budget)" readonly class="inp ro tr" style="width: 140px" />
-        </div>
-        <div class="fr">
-          <label class="lbl">Kain</label>
-          <input :value="formData.mintaHarga.kain" readonly class="inp ro flex-1" />
-          <label class="lbl ml-2" style="width: 55px">Ukuran</label>
-          <input :value="formData.mintaHarga.ukuran" readonly class="inp ro" style="width: 150px" />
-        </div>
-        <div class="fr">
-          <label class="lbl">Panjang x Lebar</label>
-          <input :value="formData.mintaHarga.panjang" readonly class="inp ro tr" style="width: 90px" />
-          <span class="mx-1">x</span>
-          <input :value="formData.mintaHarga.lebar" readonly class="inp ro tr" style="width: 90px" />
-          <label class="lbl ml-2" style="width: 60px">Gramasi</label>
-          <input :value="formData.mintaHarga.gramasi" readonly class="inp ro" style="width: 100px" />
-        </div>
-        <div class="fr">
-          <label class="lbl">Finishing</label>
-          <input :value="formData.mintaHarga.finishing" readonly class="inp ro flex-1" />
-          <span v-if="formData.mintaHarga.sublimGrade" class="badge-legacy ml-2">
-            Sublim {{ formData.mintaHarga.sublimGrade === "premium" ? "Premium" : "Medium" }}
-          </span>
-        </div>
-        <div class="fr">
-          <label class="lbl" style="width: auto">Keterangan</label>
-        </div>
-        <textarea :value="formData.mintaHarga.ket" readonly class="ket-textarea" style="height: 90px" />
-      </div>
 
-      <div v-if="formData.nego" class="section-card mt-2">
-        <div class="sec-title" style="color: #7b1fa2">Riwayat Nego — Kalkulasi {{ formData.nego.header?.nomor }}</div>
-        <p class="hint">
-          Data komponen bahan, aksesoris, dan seluruh proses pada tab lain sudah
-          otomatis diisi dari histori kalkulasi nego ini sebagai titik awal —
-          silakan sesuaikan sebelum disimpan.
-        </p>
+        <div class="section-card mt-img-card">
+          <div class="sec-title">Gambar</div>
+          <div class="img-box">
+            <img
+              v-if="imgSrc && !imgError"
+              :src="imgSrc"
+              class="img-photo"
+              alt="Gambar desain"
+              @error="imgError = true"
+            />
+            <div v-else class="img-empty">
+              <IconPhoto :size="48" color="#bdbdbd" />
+              <div v-if="!nomorMH">Belum ada sumber gambar untuk Minta Harga -</div>
+              <div v-else>Gambar tidak ditemukan: {{ imgSrc }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -103,7 +176,50 @@ const fmt = (v: any) => (Number(v) || 0).toLocaleString("id-ID");
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   padding: 12px 14px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.mt-columns {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.mt-main {
+  flex: 1;
+  min-width: 0;
   max-width: 680px;
+}
+.mt-img-card {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.img-box {
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  background: #fafafa;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.img-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #bdbdbd;
+  font-size: 11px;
+  text-align: center;
+  padding: 16px;
+}
+.img-photo {
+  max-width: 100%;
+  max-height: 560px;
+  object-fit: contain;
+  border-radius: 2px;
 }
 .sec-title {
   font-size: 10px;
@@ -123,34 +239,73 @@ const fmt = (v: any) => (Number(v) || 0).toLocaleString("id-ID");
   margin: 0 4px;
   color: #555;
 }
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
 .fr {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-bottom: 6px;
-  min-height: 24px;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 26px;
+  box-sizing: border-box;
 }
+.grp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+}
+/* Proporsi antar grup agar tepi kanan selalu sejajar & presisi */
+.g-nomor { flex: 1.55; }
+.g-status { flex: 1; }
+.g-sales { flex: 1.65; }
+.g-divisi { flex: 1; }
+.g-kain { flex: 1.7; }
+.g-ukuran { flex: 1; }
+.g-panjang { flex: 1.7; }
+.g-gramasi { flex: 1; }
 .lbl {
-  width: 100px;
   flex-shrink: 0;
   font-weight: 600;
   color: #424242;
   font-size: 11px;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
+/* Kolom label kiri disamakan → semua textbox mulai di X yang sama */
+.lbl-main { width: 110px; }
+.lbl-sub { width: 52px; }
+.lbl-sub2 { width: 72px; }
 .flex-1 {
   flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+.inp-bold {
+  font-weight: 700;
+  color: #1565c0 !important;
 }
 .inp {
-  height: 24px;
-  border: 1px solid #bdbdbd;
-  border-radius: 3px;
-  padding: 0 5px;
+  height: 26px;
+  border: 1px solid #cfcfcf;
+  border-radius: 4px;
+  padding: 0 8px;
   font-size: 11px;
   outline: none;
   background: white;
   color: #212121;
   font-family: inherit;
   box-sizing: border-box;
+  min-width: 0;
 }
 .ro {
   background: #f0f0f0 !important;
@@ -171,21 +326,31 @@ const fmt = (v: any) => (Number(v) || 0).toLocaleString("id-ID");
 }
 .ket-textarea {
   width: 100%;
+  min-height: 140px;
+  max-height: 280px;
+  overflow-y: auto;
   border: 1px solid #bdbdbd;
   border-radius: 3px;
   padding: 6px 8px;
   font-size: 11px;
   font-family: inherit;
+  line-height: 1.5;
   resize: vertical;
   outline: none;
   color: #555;
   background: #f0f0f0;
   box-sizing: border-box;
 }
-.hint {
-  font-size: 11px;
-  color: #616161;
-  font-style: italic;
-  margin: 0;
+@media (max-width: 900px) {
+  .mt-columns {
+    flex-direction: column;
+  }
+  .mt-main {
+    max-width: 100%;
+    width: 100%;
+  }
+  .mt-img-card {
+    width: 100%;
+  }
 }
 </style>
