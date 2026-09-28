@@ -1,4 +1,4 @@
-import{M as q,B as c,N as z,ab as O,Y as R,Z as T,H as j,L as s,aj as u,K as g,a4 as y,a5 as o,h as _,l as L,k as Y,D as n,z as b,G as Z,w as B,o as Q,i as X,y as aa,g as C,n as ea,F as ta,$ as v,A as sa}from"./index-DqxxA1Av.js";import{B as na}from"./BaseBrowse-cZYa9CXF.js";import{u as ra}from"./useBrowse-MSXsSo-Q.js";import"./PageLayout-DM7hjPn5.js";import"./IconChevronLeft-CQtUl6k4.js";import"./IconSearch-D6SBeQ0U.js";import"./IconTrash-CQd15qkW.js";/**
+import{M as q,B as c,N as z,ab as O,Y as R,Z as T,H as j,L as s,aj as u,K as g,a4 as y,a5 as o,h as _,l as L,k as Y,D as n,z as b,G as Z,w as B,o as Q,i as X,y as aa,g as C,n as ea,F as ta,$ as v,A as sa}from"./index-Boe1hWbD.js";import{B as na}from"./BaseBrowse-7tHBCPr5.js";import{u as ra}from"./useBrowse-CaFQB4Mx.js";import"./PageLayout-tR27w69t.js";import"./IconChevronLeft-BcCmBBv6.js";import"./IconSearch-oZpR8shV.js";import"./IconTrash-Bmu1Z2W5.js";/**
  * @license @tabler/icons-vue v3.44.0 - MIT
  *
  * This source code is licensed under the MIT license.

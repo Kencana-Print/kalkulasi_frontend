@@ -1,4 +1,4 @@
-import{M as f,N as x,aa as E,a6 as K,ab as S,Y as V,Z as i,H as h,D as s,X as B,a5 as n,R as C,a4 as p,ak as _,ag as D,al as w,ad as T,E as m,$ as d,A as z}from"./index-DqxxA1Av.js";/**
+import{M as f,N as x,aa as E,a6 as K,ab as S,Y as V,Z as i,H as h,D as s,X as B,a5 as n,R as C,a4 as p,ak as _,ag as D,al as w,ad as T,E as m,$ as d,A as z}from"./index-Boe1hWbD.js";/**
  * @license @tabler/icons-vue v3.44.0 - MIT
  *
  * This source code is licensed under the MIT license.

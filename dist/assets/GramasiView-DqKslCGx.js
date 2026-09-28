@@ -1,4 +1,4 @@
-import{M as S,B as c,N as T,ab as N,Z as U,H as _,L as e,a5 as t,aj as r,h as $,l as z,K as u,k as E,D as V,z as F,al as K,o as R,i as L,y as j,g as h,n as q,F as H,$ as g,A as W}from"./index-DqxxA1Av.js";import{B as Y}from"./BaseBrowse-cZYa9CXF.js";import{u as Z}from"./useBrowse-MSXsSo-Q.js";import"./PageLayout-DM7hjPn5.js";import"./IconChevronLeft-CQtUl6k4.js";import"./IconSearch-D6SBeQ0U.js";import"./IconTrash-CQd15qkW.js";/**
+import{M as S,B as c,N as T,ab as N,Z as U,H as _,L as e,a5 as t,aj as r,h as $,l as z,K as u,k as E,D as V,z as F,al as K,o as R,i as L,y as j,g as h,n as q,F as H,$ as g,A as W}from"./index-Boe1hWbD.js";import{B as Y}from"./BaseBrowse-7tHBCPr5.js";import{u as Z}from"./useBrowse-CaFQB4Mx.js";import"./PageLayout-tR27w69t.js";import"./IconChevronLeft-BcCmBBv6.js";import"./IconSearch-oZpR8shV.js";import"./IconTrash-Bmu1Z2W5.js";/**
  * @license @tabler/icons-vue v3.44.0 - MIT
  *
  * This source code is licensed under the MIT license.
