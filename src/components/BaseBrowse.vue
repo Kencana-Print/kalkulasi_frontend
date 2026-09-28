@@ -329,21 +329,27 @@ const summaryFormatted = computed(() =>
 );
 
 // ── Pagination ────────────────────────────────────────────────────────────
+const isShowAll = computed(() => perPage.value === -1);
+const effectivePerPage = computed(() =>
+  isShowAll.value ? Math.max(totalItems.value, 1) : perPage.value,
+);
 const totalItems = computed(() => filteredItems.value.length);
 const totalPages = computed(() =>
-  Math.max(1, Math.ceil(totalItems.value / perPage.value)),
+  isShowAll.value ? 1 : Math.max(1, Math.ceil(totalItems.value / perPage.value)),
 );
 const pageStart = computed(() =>
-  totalItems.value === 0 ? 0 : (currentPage.value - 1) * perPage.value + 1,
+  totalItems.value === 0 ? 0 : isShowAll.value ? 1 : (currentPage.value - 1) * perPage.value + 1,
 );
 const pageEnd = computed(() =>
-  Math.min(currentPage.value * perPage.value, totalItems.value),
+  isShowAll.value ? totalItems.value : Math.min(currentPage.value * perPage.value, totalItems.value),
 );
 const pagedItems = computed(() =>
-  filteredItems.value.slice(
-    (currentPage.value - 1) * perPage.value,
-    currentPage.value * perPage.value,
-  ),
+  isShowAll.value
+    ? filteredItems.value
+    : filteredItems.value.slice(
+        (currentPage.value - 1) * perPage.value,
+        currentPage.value * perPage.value,
+      ),
 );
 const visiblePages = computed(() => {
   const total = totalPages.value,
@@ -556,7 +562,7 @@ watch(
             density="compact"
             fixed-header
             hide-default-footer
-            :items-per-page="perPage"
+            :items-per-page="effectivePerPage"
             class="base-table"
             :row-props="resolvedRowProps"
             @click:row="handleRowClick"
@@ -757,13 +763,14 @@ watch(
         <div class="per-page-wrap">
           <span class="page-info">Per hal.</span>
           <select
-            v-model="perPage"
+            v-model.number="perPage"
             class="per-page-select"
             @change="currentPage = 1"
           >
             <option v-for="n in [25, 50, 100, 200]" :key="n" :value="n">
               {{ n }}
             </option>
+            <option :value="-1">All</option>
           </select>
         </div>
       </div>

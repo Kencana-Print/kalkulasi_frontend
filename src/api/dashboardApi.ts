@@ -13,7 +13,7 @@ export interface TodayActivityRow {
   TglKalkulasi: string;
   Status: string;
   Created: string;
-  modified: string;
+  Modified: string;
   NoPermintaan: string;
   TglPermintaan: string;
   Peminta: string;

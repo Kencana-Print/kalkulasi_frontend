@@ -372,7 +372,7 @@ const statusStyle = (s: string) => {
               <span class="activity-dim">{{ fmtDateTime(row.TglKalkulasi) }}</span>
               <span :style="statusStyle(row.Status)">{{ row.Status || "—" }}</span>
               <span class="activity-user">{{ row.Created || "—" }}</span>
-              <span class="activity-modify">{{ row.modified || "—" }}</span>
+              <span class="activity-modified">{{ row.Modified || "—" }}</span>
               <span class="activity-nomor">{{ row.NoPermintaan }}</span>
               <span class="activity-dim">{{ fmtTgl(row.TglPermintaan) }}</span>
               <span class="activity-user">{{ row.Peminta || "—" }}</span>
