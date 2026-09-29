@@ -4,6 +4,7 @@ import { useToast } from "vue-toastification";
 import { IconSearch, IconPlus, IconTrash } from "@tabler/icons-vue";
 import { kalkulasiFormApi } from "@/api/transaksi/kalkulasiFormApi";
 import ModelKerjaSearchModal from "@/components/transaksi/ModelKerjaSearchModal.vue";
+import KalkulasiSearchModal from "@/components/transaksi/KalkulasiSearchModal.vue";
 import BiayaPengerjaanSearchModal from "@/components/transaksi/BiayaPengerjaanSearchModal.vue";
 
 const props = defineProps<{
@@ -67,10 +68,48 @@ const removeKomponenRow = (idx: number) => {
 };
 const onKomponenChange = (idx: number) => {
   const row = props.formData.komponen[idx];
+  // Delphi CharCase ecUpperCase — nilai disimpan huruf besar (penting utk
+  // pencocokan 'PENDEK'/'PANJANG' di Tab Gramasi & validasi warna).
+  row.komponen = (row.komponen || "").toUpperCase();
   if (Number(row.babaran) === 0) {
     row.kg = true;
     row.pabrik = true;
   }
+  // Nilai Lengan/Rib TIDAK dibersihkan saat Komponen diganti (seperti Delphi:
+  // text edit bebas, validasi hanya Warna saat simpan).
+};
+
+// Lengan/Rib ketik bebas (Delphi: text edit ecUpperCase, tanpa recalc).
+const onLenganChange = (idx: number) => {
+  const row = props.formData.komponen[idx];
+  row.lengan = (row.lengan || "").toUpperCase();
+};
+
+// ── Pilihan kolom Lengan/Rib & Warna ──
+// Delphi: Komponen = combobox (pilih/ketik bebas, ecUpperCase), Lengan/Rib =
+// text edit bebas yang diisi tombol OK tab Gramasi/Jenis Kain. Di web keduanya
+// memakai input + datalist: saran pilihan muncul sesuai Komponen
+// (BODY/LENGAN → PANJANG, PENDEK; RIB → LENGAN, LEHER) tapi tetap bisa
+// mengetik bebas. Warna tetap dropdown ketat (validasi simpan Delphi & web
+// hanya menerima MUDA, SEDANG, TUA, SUPERTUA, kosong).
+const LENGAN_BODY_OPTS = ["PANJANG", "PENDEK"];
+const RIB_OPTS = ["LENGAN", "LEHER"];
+// "SUPERTUA" (tanpa spasi) mengikuti validasi simpan Delphi & web
+// (MUDA, SEDANG, TUA, SUPERTUA).
+const WARNA_OPTS = ["MUDA", "SEDANG", "TUA", "SUPERTUA"];
+
+const lenganOptions = (row: any): string[] | null => {
+  const k = (row?.komponen || "").toUpperCase();
+  if (k === "BODY" || k === "LENGAN") return LENGAN_BODY_OPTS;
+  if (k === "RIB") return RIB_OPTS;
+  return null;
+};
+
+// Babaran diketik bebas → Bruto, Kebutuhan & Rp/Pcs ikut rumus.
+// Replikasi clbabaranPropertiesEditValueChanged: hitungkg + hitungpabrik + Hitung.
+const onBabaranChange = (idx: number) => {
+  props.recalcKomponenRow(idx);
+  props.recalcTotal();
 };
 // Qty Order diganti → jalankan prosedur margin Delphi (tmargin /
 // tallowance / tbiayakirim bertingkat per qty + grade): isi Laba,
@@ -146,6 +185,119 @@ watch(
     if (jahitHargaDasar.value > 0) applyJahitHarga();
   },
 );
+
+// ── Load Kalkulasi From (edtNomor2 di Delphi) ──
+// Replikasi edtNomor2Enter/Exit/KeyDown + loaddataall(akode): F1 / tombol
+// bantuan → pilih nomor kalkulasi lain (selain nomor aktif); saat nomor
+// berubah & valid → seluruh perhitungan dimuat dari nomor tsb, KECUALI
+// identitas dokumen aktif (nomor, tanggal, project, customer, qty order)
+// dan tautan Minta Harga — persis guard `if edtNomor2.Text=''` di loaddataall.
+const showKalkulasiModal = ref(false);
+const isLoadingFrom = ref(false);
+const nomor2InputRef = ref<HTMLInputElement | null>(null);
+let prevNomor2 = "";
+
+const openKalkulasiModal = () => {
+  showKalkulasiModal.value = true;
+};
+
+const onKalkulasiSelected = (nomor: string) => {
+  props.formData.nomor2 = nomor;
+  void loadFromKalkulasi();
+};
+
+const onNomor2Focus = () => {
+  prevNomor2 = (props.formData.nomor2 || "").trim().toUpperCase();
+};
+
+const onNomor2Keydown = (e: KeyboardEvent) => {
+  if (e.key === "F1") {
+    e.preventDefault();
+    openKalkulasiModal();
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    void loadFromKalkulasi();
+  }
+};
+
+const onNomor2Blur = () => {
+  const cur = (props.formData.nomor2 || "").trim().toUpperCase();
+  props.formData.nomor2 = cur;
+  // Enter sudah memicu load (async, prevNomor2 belum ter-update) → jangan load 2x
+  if (cur && cur !== prevNomor2 && !isLoadingFrom.value) void loadFromKalkulasi();
+  prevNomor2 = cur;
+};
+
+const loadFromKalkulasi = async () => {
+  const fd = props.formData;
+  const src = (fd.nomor2 || "").trim().toUpperCase();
+  if (!src) return;
+  if (src === (fd.nomor || "").trim().toUpperCase()) {
+    toast.warning("Nomor sama dengan dokumen aktif.");
+    return;
+  }
+  isLoadingFrom.value = true;
+  try {
+    const res = await kalkulasiFormApi.getDetail(src);
+    const d = res.data.data;
+    // Identitas dokumen aktif (nomor/tanggal/project/customer/qty order),
+    // tautan Minta Harga, status cancel/update, dan warna model dipertahankan
+    // — Delphi (loaddataall) juga tidak menyentuh field-field tsb saat
+    // edtNomor2 terisi.
+    fd.khKode = d.header.khKode || "";
+    fd.khNama = d.header.khNama || "";
+    fd.ckMedium = d.header.ckMedium;
+    fd.pakaiPersen = d.header.pakaiPersen;
+    fd.pakaiObat = d.header.pakaiObat;
+    fd.ket = d.header.ket;
+    fd.ketBeli = d.header.ketBeli;
+    fd.labaPersen = d.header.labaPersen;
+    fd.rpLaba = d.header.rpLaba;
+    fd.allowancePersen = d.header.allowancePersen;
+    fd.rpAllowance = d.header.rpAllowance;
+    fd.rpSesuai = d.header.rpSesuai;
+    fd.ppn = d.header.ppn;
+    fd.rpSesuaiPpn = d.header.rpSesuaiPpn;
+    fd.rpPotong = d.dtl.rpPotong;
+    fd.jahit = d.dtl.jahit;
+    fd.raglan = d.dtl.raglan;
+    fd.rpRaglan = d.dtl.rpRaglan;
+    fd.rpJahit = d.dtl.rpJahit;
+    fd.rpFinishing = d.dtl.rpFinishing;
+    fd.rpTenagaCetak = d.dtl.rpTenagaCetak;
+    fd.rpBiayaObat = d.dtl.rpBiayaObat;
+    fd.rpKirim = d.dtl.rpKirim;
+    fd.komponen = d.komponen?.length
+      ? d.komponen
+      : [{ komponen: "", kg: true, pabrik: true, jenisKain: "", lengan: "", warna: "", harga: 0, babaran: 0, bruto: 0, kebutuhan: 0, pcs: 0, logBody: 0, logLengan: 0 }];
+    // Replikasi initgrid2: sumber tanpa aksesoris → 1 baris PLASTIK/KARUNG
+    fd.aksesories = d.aksesories?.length ? d.aksesories : [{ aksesories: "PLASTIK/KARUNG", biaya: 0 }];
+    fd.jenisKainOptions = d.jenisKainOptions || [];
+    if (d.bordir) fd.bordir = { cmBordir: d.bordir.cmBordir, p: d.bordir.p, l: d.bordir.l, rp: d.bordir.rpBordir };
+    if (d.polyflex) fd.polyflex = { cmBordir: d.polyflex.cmPolyflex, p: d.polyflex.p, l: d.polyflex.l, rp: d.polyflex.rpPolyflex };
+    if (d.dtf) fd.dtf = { cmBordir: d.dtf.cmDtf, p: d.dtf.p, l: d.dtf.l, rp: d.dtf.rpDtf };
+    if (d.cetak) fd.cetak = { jenis: d.cetak.jenis, cm: d.cetak.cm, p: d.cetak.p, l: d.cetak.l, rp: d.cetak.rpCetak };
+    if (d.sublim) fd.sublim = { jenis: d.sublim.jenis, rp: d.sublim.rp, rpSublim: d.sublim.rpSublim };
+    // Backfill harga dasar jahit agar toggle raglan tetap konsisten
+    if (fd.jahit && fd.rpJahit) {
+      jahitHargaDasar.value = fd.raglan ? Number(fd.rpJahit) - Number(fd.rpRaglan) : Number(fd.rpJahit);
+    }
+    // Bruto & Kebutuhan dihitung runtime ( striking Delphi: hitungkg +
+    // hitungpabrik per baris memakai qty order dokumen AKTIF)
+    fd.komponen.forEach((r: any, i: number) => {
+      if (Number(r.harga) && Number(r.babaran)) props.recalcKomponenRow(i);
+    });
+    props.recalcTotal();
+    prevNomor2 = src;
+    toast.success(`Perhitungan dimuat dari ${src}.`);
+  } catch (e: any) {
+    // Replikasi Delphi: 'Nomor tsb tidak ada' + fokus kembali ke textbox
+    toast.error(e.response?.data?.message ?? "Nomor tsb tidak ada");
+    nomor2InputRef.value?.focus();
+  } finally {
+    isLoadingFrom.value = false;
+  }
+};
 
 // ── Resize lebar kolom grid Komponen ala Excel (drag garis kanan header).
 // Lebar tersimpan di localStorage sehingga bertahan antar sesi. ──
@@ -302,14 +454,33 @@ const onSesuaiPpnChange = () => {
 
         <div class="fr">
           <label class="lbl">No. Kalkulasi</label>
-          <input :value="formData.nomor || '(Otomatis)'" readonly class="inp ro" style="flex: 1; max-width: 220px; font-weight: 700; color: #1565c0" />
-          <label class="lbl ml-2" style="width: 60px">Tanggal</label>
-          <input v-model="formData.tanggal" type="date" class="inp" style="width: 150px" />
+          <input :value="formData.nomor || '(Otomatis)'" readonly class="inp ro" style="width: 220px; font-weight: 700; color: #1565c0" />
+          <label class="lbl ml-2" style="width: auto">Load Kalkulasi From</label>
+          <div class="igrp" style="width: 220px">
+            <input
+              ref="nomor2InputRef"
+              v-model="formData.nomor2"
+              class="inp text-uppercase"
+              placeholder="Ketik nomor / F1"
+              @focus="onNomor2Focus"
+              @blur="onNomor2Blur"
+              @keydown="onNomor2Keydown"
+            />
+            <button type="button" class="blkp" title="Cari Kalkulasi (F1)" @mousedown.prevent="openKalkulasiModal">
+              <IconSearch :size="13" color="#1565c0" />
+            </button>
+          </div>
+          <v-progress-circular v-if="isLoadingFrom" indeterminate color="primary" size="16" class="ml-1" />
+        </div>
+
+        <div class="fr">
+          <label class="lbl">Tanggal</label>
+          <input v-model="formData.tanggal" type="date" class="inp" style="width: 220px" />
         </div>
 
         <div class="fr">
           <label class="lbl">Model Kerja</label>
-          <div class="igrp" style="width: 160px">
+          <div class="igrp" style="width: 220px">
             <input
               v-model="formData.khKode"
               class="inp text-uppercase"
@@ -322,21 +493,19 @@ const onSesuaiPpnChange = () => {
             </button>
           </div>
           <input :value="formData.khNama" readonly class="inp ro ml-2" style="flex: 1" placeholder="Nama Model" />
-          <label class="lbl ml-2" style="width: 55px">Warna</label>
-          <input :value="formData.warna" readonly class="inp ro" style="width: 100px" />
         </div>
 
         <div class="fr">
           <label class="lbl">Customer</label>
-          <input v-model="formData.cus" class="inp" style="flex: 1" />
+          <input v-model="formData.cus" class="inp text-uppercase" style="flex: 1" />
         </div>
         <div class="fr">
           <label class="lbl">Project</label>
-          <input v-model="formData.project" class="inp" style="flex: 1" />
+          <input v-model="formData.project" class="inp text-uppercase" style="flex: 1" />
         </div>
         <div class="fr">
           <label class="lbl">Qty Order</label>
-          <input v-model.number="formData.rencanaOrder" type="number" class="inp text-right" style="width: 140px" @change="onQtyOrderChange" />
+          <input v-model.number="formData.rencanaOrder" type="number" class="inp text-right" style="width: 220px" @change="onQtyOrderChange" />
           <label class="lbl ml-2" style="width:auto;gap:6px">
             <input type="checkbox" :checked="formData.ckMedium" disabled style="accent-color:#1565c0;width:14px;height:14px" />
             <span :style="{fontWeight: formData.ckMedium?700:400, color: formData.ckMedium?'#1565c0':'#616161'}">Medium</span>
@@ -355,6 +524,9 @@ const onSesuaiPpnChange = () => {
           </button>
         </div>
         <div class="ll-table-wrap">
+          <datalist id="komponen-dl">
+            <option v-for="k in formData.komponenOptions" :key="k" :value="k" />
+          </datalist>
           <table ref="komponenTableRef" class="ll-table ll-table-wide">
             <thead>
               <tr>
@@ -377,10 +549,7 @@ const onSesuaiPpnChange = () => {
               <tr v-for="(row, idx) in formData.komponen" :key="idx">
                 <td class="ll-td-ctr ll-td-lbl">{{ Number(idx) + 1 }}</td>
                 <td class="ll-td-inp">
-                  <select v-model="row.komponen" class="ll-cell" @change="onKomponenChange(Number(idx))">
-                    <option value=""></option>
-                    <option v-for="k in formData.komponenOptions" :key="k" :value="k">{{ k }}</option>
-                  </select>
+                  <input v-model="row.komponen" class="ll-cell text-uppercase" list="komponen-dl" @change="onKomponenChange(Number(idx))" />
                 </td>
                 <td class="ll-td-ctr">
                   <input type="checkbox" v-model="row.kg" @change="onFlagChange(Number(idx))" style="accent-color: #1565c0" />
@@ -390,16 +559,31 @@ const onSesuaiPpnChange = () => {
                 </td>
                 <td class="ll-td-inp">
                   <div class="cell-grp">
-                    <input v-model="row.jenisKain" class="ll-cell" placeholder="ketik/F1 utk pilih" />
+                    <input v-model="row.jenisKain" class="ll-cell text-uppercase" />
                     <button type="button" class="ci-lkp" @mousedown.prevent="openLookupUntukBaris(Number(idx))" title="Cari">
                       <IconSearch :size="12" />
                     </button>
                   </div>
                 </td>
-                <td class="ll-td-inp"><input :value="row.lengan" readonly class="ll-cell" /></td>
-                <td class="ll-td-inp"><input :value="row.warna" readonly class="ll-cell" /></td>
+                <td class="ll-td-inp">
+                  <input
+                    v-model="row.lengan"
+                    class="ll-cell text-uppercase"
+                    :list="lenganOptions(row) ? 'lengan-dl-' + idx : undefined"
+                    @change="onLenganChange(Number(idx))"
+                  />
+                  <datalist v-if="lenganOptions(row)" :id="'lengan-dl-' + idx">
+                    <option v-for="o in lenganOptions(row)!" :key="o" :value="o" />
+                  </datalist>
+                </td>
+                <td class="ll-td-inp">
+                  <select v-model="row.warna" class="ll-cell">
+                    <option value=""></option>
+                    <option v-for="w in WARNA_OPTS" :key="w" :value="w">{{ w }}</option>
+                  </select>
+                </td>
                 <td class="ll-td-inp"><input v-model.number="row.harga" type="number" class="ll-cell tr" @change="onHargaChange(Number(idx))" /></td>
-                <td class="ll-td-inp"><input :value="row.babaran" readonly class="ll-cell tr" /></td>
+                <td class="ll-td-inp"><input v-model.number="row.babaran" type="number" step="any" class="ll-cell tr" @change="onBabaranChange(Number(idx))" /></td>
                 <td class="ll-td-inp"><input :value="fmt(row.bruto)" readonly class="ll-cell tr" /></td>
                 <td class="ll-td-inp"><input :value="fmt(row.pcs)" readonly class="ll-cell tr font-weight-bold" /></td>
                 <td class="ll-td-inp"><input :value="fmt(row.kebutuhan)" readonly class="ll-cell tr" /></td>
@@ -543,7 +727,7 @@ const onSesuaiPpnChange = () => {
             <tbody>
               <tr v-for="(row, idx) in formData.aksesories" :key="idx">
                 <td class="ll-td-ctr ll-td-lbl">{{ Number(idx) + 1 }}</td>
-                <td class="ll-td-inp"><input v-model="row.aksesories" class="ll-cell" /></td>
+                <td class="ll-td-inp"><input v-model="row.aksesories" class="ll-cell text-uppercase" /></td>
                 <td class="ll-td-inp"><input v-model.number="row.biaya" type="number" class="ll-cell tr" @input="recalcTotal" @change="recalcTotal" /></td>
                 <td class="ll-td-ctr">
                   <button type="button" class="btn-del" @click="removeAksesorisRow(Number(idx))">
@@ -585,6 +769,7 @@ const onSesuaiPpnChange = () => {
   </div>
 
   <ModelKerjaSearchModal v-model="showModelKerjaModal" @selected="onModelKerjaSelected" />
+  <KalkulasiSearchModal v-model="showKalkulasiModal" :exclude="formData.nomor" @selected="onKalkulasiSelected" />
   <BiayaPengerjaanSearchModal
     v-model="showJahitModal"
     jenis="JAHIT"

@@ -28,6 +28,11 @@ export const kalkulasiFormApi = {
   getModelKerja: (khKode: string) =>
     api.get(`${BASE}/model-kerja`, { params: { khKode } }),
 
+  // ── Bantuan F1 "Load Kalkulasi From" (edtNomor2) ──
+  // q: filter Nomor/Project/Customer, exclude: nomor dokumen aktif (tidak ikut tampil)
+  searchKalkulasi: (q: string, exclude?: string) =>
+    api.get(`${BASE}/kalkulasi/cari`, { params: { q, exclude } }),
+
   // ── Gramasi & Harga Kain ──
   getGramasi: (params: {
     khKode: string;
