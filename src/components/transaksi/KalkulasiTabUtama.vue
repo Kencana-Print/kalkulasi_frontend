@@ -186,6 +186,22 @@ watch(
   },
 );
 
+// Harga dasar jahit ikut disinkronkan saat field jahit berubah dari luar
+// (Batal / Load Kalkulasi From) — tanpa ini toggle Raglan menghitung dari
+// harga dasar basi. Idempoten: hasil tulis-ulang sama dengan nilai berjalan.
+watch(
+  () => [props.formData.jahit, props.formData.rpJahit, props.formData.raglan, props.formData.rpRaglan],
+  () => {
+    if (props.formData.jahit && Number(props.formData.rpJahit)) {
+      jahitHargaDasar.value = props.formData.raglan
+        ? Number(props.formData.rpJahit) - Number(props.formData.rpRaglan)
+        : Number(props.formData.rpJahit);
+    } else {
+      jahitHargaDasar.value = 0;
+    }
+  },
+);
+
 // ── Load Kalkulasi From (edtNomor2 di Delphi) ──
 // Replikasi edtNomor2Enter/Exit/KeyDown + loaddataall(akode): F1 / tombol
 // bantuan → pilih nomor kalkulasi lain (selain nomor aktif); saat nomor

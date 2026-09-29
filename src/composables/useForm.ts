@@ -43,8 +43,13 @@ export function useForm<
   // NB: jangan pakai `ReturnType<typeof ref<T>>` — itu mengambil overload
   // terakhir `ref(value?: T)` sehingga formData bertipe Ref<T | undefined>.
   // Runtime formData selalu terisi (initialData), jadi Ref<T> yang tepat.
-  const formData = ref<T>({ ...options.initialData }) as Ref<T>;
-  const originalData = ref<T>(JSON.parse(JSON.stringify(options.initialData)));
+  // Deep-clone agar state form terisolasi dari objek initialData: tanpa ini,
+  // objek/array bersarang (shared by reference) yang diubah user ikut
+  // mengotori initialData sehingga Batal/Tutup + buka ulang tidak kembali
+  // ke kondisi semula.
+  const deepClone = <V>(v: V): V => JSON.parse(JSON.stringify(v));
+  const formData = ref<T>(deepClone(options.initialData)) as Ref<T>;
+  const originalData = ref<T>(deepClone(options.initialData));
 
   const canSave = computed(() => {
     const perm = isEditMode.value ? "edit" : "insert";
@@ -64,7 +69,7 @@ export function useForm<
     try {
       const data = await options.fetchApi();
       (formData as any).value = data;
-      originalData.value = JSON.parse(JSON.stringify(data));
+      originalData.value = deepClone(data);
     } catch (e) {
       toast.error("Gagal memuat data form.");
       goBack();
@@ -91,10 +96,8 @@ export function useForm<
 
   const executeCancel = () => {
     showCancelDialog.value = false;
-    (formData as any).value = JSON.parse(
-      JSON.stringify(
-        isEditMode.value ? originalData.value : options.initialData,
-      ),
+    (formData as any).value = deepClone(
+      isEditMode.value ? originalData.value : options.initialData,
     );
   };
 

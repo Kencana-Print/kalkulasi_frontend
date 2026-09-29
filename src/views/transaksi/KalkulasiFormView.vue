@@ -46,7 +46,11 @@ const blankProsesArea = () => ({
   rp: 0,
 });
 
-const defaultData = {
+// Factory (bukan konstanta) — tiap sesi form (baru/buka ulang) WAJIB dapat
+// objek segar. Objek literal bersama + spread dangkal membuat array/objek
+// bersarang (bordir, cetak, ...) shared by reference sehingga ketikan sesi
+// sebelumnya bocor ke sesi berikutnya (Tutup + buka ulang tidak semula).
+const makeDefaultData = () => ({
   // --- identitas (Tab Kalkulasi / panelkiri) ---
   nomor: "",
   nomor2: "", // salin acuan dari kalkulasi lain (edtNomor2)
@@ -116,7 +120,7 @@ const defaultData = {
   // dari `ppn` di atas (kal_ppn, per-dokumen, cuma dipakai utk rpSesuaiPpn).
   // zppn dipakai hitungpabrik utk keluarkan PPN dari harga pabrik.
   ppnGlobal: 11,
-};
+});
 
 // ── hitungkg + hitungpabrik per baris grid komponen — replikasi 1:1.
 // Dipanggil dari Tab Kalkulasi (edit langsung di grid) maupun dari Tab
@@ -214,7 +218,7 @@ const {
   executeClose,
 } = useForm({
   menuId: "22",
-  initialData: defaultData,
+  initialData: makeDefaultData(),
 
   fetchApi: async () => {
     if (isEditMode.value) {
@@ -224,7 +228,7 @@ const {
       const komponenOptRes = await kalkulasiFormApi.getKomponenOptions();
 
       return {
-        ...defaultData,
+        ...makeDefaultData(),
         // ckMedium tidak pernah disimpan ke DB di Delphi (murni state UI,
         // di-set ulang tiap kali tombol OK Gramasi ditekan) — backend
         // getDetail() sudah menghitung ulang ini dari jenisKain baris
@@ -232,7 +236,7 @@ const {
         // tidak "nyangkut" di nilai default saat buka data lama.
         ckMedium: d.header.ckMedium,
         nomor: d.header.nomor,
-        tanggal: d.header.tanggal?.substring(0, 10) || defaultData.tanggal,
+        tanggal: d.header.tanggal?.substring(0, 10) || makeDefaultData().tanggal,
         khKode: d.header.khKode || "",
         khNama: d.header.khNama || "",
         cus: d.header.cus || "",
@@ -261,7 +265,7 @@ const {
         rpBiayaObat: d.dtl.rpBiayaObat,
         rpKirim: d.dtl.rpKirim,
         komponen: d.komponen?.length ? d.komponen : [{ komponen: "", kg: true, pabrik: true, jenisKain: "", lengan: "", warna: "", harga: 0, babaran: 0, bruto: 0, kebutuhan: 0, pcs: 0, logBody: 0, logLengan: 0 }],
-        aksesories: d.aksesories?.length ? d.aksesories : [...defaultData.aksesories],
+        aksesories: d.aksesories?.length ? d.aksesories : [...makeDefaultData().aksesories],
         komponenOptions: komponenOptRes.data.data,
         jenisKainOptions: d.jenisKainOptions || [],
         bordir: d.bordir
@@ -290,8 +294,8 @@ const {
       // Buat kosong (dari Browse Kalkulasi) — tetap butuh komponenOptions agar dropdown terisi
       try {
         const komponenOptRes = await kalkulasiFormApi.getKomponenOptions();
-        return { ...defaultData, komponenOptions: komponenOptRes.data.data, komponen: [{ komponen: "", kg: true, pabrik: true, jenisKain: "", lengan: "", warna: "", harga: 0, babaran: 0, bruto: 0, kebutuhan: 0, pcs: 0, logBody: 0, logLengan: 0 }], aksesories: [{ aksesories: "PLASTIK/KARUNG", biaya: 0 }] };
-      } catch { return { ...defaultData, komponen: [{ komponen: "", kg: true, pabrik: true, jenisKain: "", lengan: "", warna: "", harga: 0, babaran: 0, bruto: 0, kebutuhan: 0, pcs: 0, logBody: 0, logLengan: 0 }], aksesories: [{ aksesories: "PLASTIK/KARUNG", biaya: 0 }] }; }
+        return { ...makeDefaultData(), komponenOptions: komponenOptRes.data.data, komponen: [{ komponen: "", kg: true, pabrik: true, jenisKain: "", lengan: "", warna: "", harga: 0, babaran: 0, bruto: 0, kebutuhan: 0, pcs: 0, logBody: 0, logLengan: 0 }], aksesories: [{ aksesories: "PLASTIK/KARUNG", biaya: 0 }] };
+      } catch { return { ...makeDefaultData(), komponen: [{ komponen: "", kg: true, pabrik: true, jenisKain: "", lengan: "", warna: "", harga: 0, babaran: 0, bruto: 0, kebutuhan: 0, pcs: 0, logBody: 0, logLengan: 0 }], aksesories: [{ aksesories: "PLASTIK/KARUNG", biaya: 0 }] }; }
     }
 
     const res = await kalkulasiFormApi.getMintaHarga(mhNomor);
@@ -299,7 +303,7 @@ const {
     const komponenOptRes = await kalkulasiFormApi.getKomponenOptions();
 
     const base: any = {
-      ...defaultData,
+      ...makeDefaultData(),
       divisi: mh.header.divisi,
       project: mh.header.nama,
       cus: mh.header.custNama,
@@ -498,6 +502,22 @@ const validateSave = () => {
   showSaveDialog.value = true;
 };
 
+// Batal: kembalikan seluruh form ke kondisi semula (mode Ubah) atau kosongkan
+// (mode Buat). executeCancel() me-restore snapshot, tapi snapshot diambil
+// sebelum Bruto & Kebutuhan dihitung runtime (tidak tersimpan di DB) → hitung
+// ulang tiap baris + total agar tampilan konsisten. ppnGlobal juga bukan
+// bagian snapshot (di-set sesudah fetch) → dipertahankan.
+const handleCancel = () => {
+  const ppnGlobal = formData.value.ppnGlobal;
+  executeCancel();
+  formData.value.ppnGlobal = ppnGlobal;
+  formData.value.komponen.forEach((r: any, i: number) => {
+    if (Number(r.harga) && Number(r.babaran)) recalcKomponenRow(i);
+  });
+  recalcTotal();
+  toast.info("Perubahan dibatalkan.");
+};
+
 onMounted(async () => {
   // fetchData() (kalau mode edit/dari-minta-harga) mengganti formData.value
   // sepenuhnya dari hasil fetchApi — jadi ppnGlobal WAJIB di-set SESUDAHNYA,
@@ -555,14 +575,14 @@ const handleClose = () => {
     :icon="IconCalculator"
     :is-loading="isLoading"
     :is-saving="isSaving"
-    :hide-cancel="true"
+    :is-edit-mode="isEditMode"
     item-name="Kalkulasi"
     v-model:show-save-dialog="showSaveDialog"
     v-model:show-cancel-dialog="showCancelDialog"
     v-model:show-close-dialog="showCloseDialog"
     @validate-save="validateSave"
     @confirm-save="executeSave"
-    @confirm-cancel="executeCancel"
+    @confirm-cancel="handleCancel"
     @confirm-close="handleClose"
   >
     <div class="pf-container">
