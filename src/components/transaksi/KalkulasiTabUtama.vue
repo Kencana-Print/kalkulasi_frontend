@@ -150,8 +150,67 @@ const onFlagChange = (idx: number) => {
   props.recalcKomponenRow(idx);
   props.recalcTotal();
 };
+// Nominal (Rp) tampil bulat tanpa koma + pemisah ribuan.
+// Pengecualian (tetap boleh koma): Babaran grid, Allowance %, Laba %, PPN %
+// — keempatnya tidak lewat fmt() ini.
+const fmt = (v: any) => Math.round(Number(v) || 0).toLocaleString("id-ID");
 // Harga Bahan+Ppn diketik bebas → Bruto & Rp/Pcs ikut rumus (hitungkg + hitungpabrik)
-const onHargaChange = (idx: number) => {
+// Input tampil dengan pemisah ribuan id-ID (live-format saat ketik).
+const parseRp = (s: any): number => {
+  if (s === null || s === undefined) return 0;
+  const digits = String(s).replace(/[^0-9]/g, "");
+  if (!digits) return 0;
+  return Number(digits);
+};
+// ── Helper generik input Rp berformat ribuan (dipakai semua field bertanda
+// merah: Biaya Pengerjaan, Obat/Kirim, Rp Laba/Penyesuaian/+PPN, Biaya
+// Aksesoris). Pola: focus → angka polos, input → live-format, done →
+// normalisasi + callback recalc. ──
+const onRpFocus = (e: Event, val: any) => {
+  const el = e.target as HTMLInputElement;
+  el.value = Number(val) ? String(Math.round(Number(val))) : "";
+  el.select();
+};
+const onRpInput = (e: Event, set: (v: number) => void, live?: () => void) => {
+  const el = e.target as HTMLInputElement;
+  if (!el.value || !String(el.value).replace(/[^0-9]/g, "")) {
+    set(0);
+    el.value = "";
+    live?.();
+    return;
+  }
+  const val = parseRp(el.value);
+  set(val);
+  const formatted = fmt(val);
+  if (el.value !== formatted) {
+    el.value = formatted;
+    try { el.setSelectionRange(el.value.length, el.value.length); } catch { /* abaikan */ }
+  }
+  live?.();
+};
+const onRpDone = (e: Event, get: () => any, set: (v: number) => void, after?: () => void) => {
+  const v = parseRp(get());
+  set(v);
+  (e.target as HTMLInputElement).value = fmt(v);
+  after?.();
+};
+const onHargaFocus = (e: Event, row: any) => onRpFocus(e, row.harga);
+const onHargaInput = (e: Event, idx: number) => onRpInput(e, (v) => (props.formData.komponen[idx].harga = v));
+const onHargaChange = (eOrIdx: Event | number, maybeIdx?: number) => {
+  // Dipanggil sebagai @change/@blur: onHargaChange($event, idx) → normalisasi
+  // tampilan; dipanggil legacy onHargaChange(idx) → tetap jalan.
+  let idx: number;
+  let el: HTMLInputElement | null = null;
+  if (typeof eOrIdx === "number") {
+    idx = eOrIdx;
+  } else {
+    idx = Number(maybeIdx);
+    el = eOrIdx.target as HTMLInputElement;
+  }
+  const row = props.formData.komponen[idx];
+  if (!row) return;
+  row.harga = parseRp(row.harga);
+  if (el) el.value = fmt(row.harga);
   props.recalcKomponenRow(idx);
   props.recalcTotal();
 };
@@ -437,14 +496,11 @@ const removeAksesorisRow = (idx: number) => {
   props.recalcTotal();
 };
 
-// Nominal (Rp) tampil bulat tanpa koma + pemisah ribuan.
-// Pengecualian (tetap boleh koma): Babaran grid, Allowance %, Laba %, PPN %
-// — keempatnya tidak lewat fmt() ini.
-const fmt = (v: any) => Math.round(Number(v) || 0).toLocaleString("id-ID");
-
 // Edit +PPN → hitung mundur Rp Penyesuaian (kebalikan rumus Delphi di
 // recalcSesuaiPpn: rpSesuai = rpSesuaiPpn / (1 + ppn/100)).
 // Watch rpSesuai di parent otomatis recalc maju utk normalisasi tampilan.
+// Dipakai sebagai callback `after` dari onRpDone — nilai +PPN ketikan user
+// dipertahankan (sudah dinormalisasi onRpDone sebelum masuk sini).
 const onSesuaiPpnChange = () => {
   const fd = props.formData;
   const ppn = Number(fd.ppn) || 0;
@@ -553,7 +609,7 @@ const onSesuaiPpnChange = () => {
                 <th data-col="jeniskain" style="width: 180px">Jenis Kain<span class="col-grip" title="Geser untuk ubah lebar kolom" @mousedown="onGripMouseDown" /></th>
                 <th data-col="lengan" style="width: 80px">Lengan/Rib<span class="col-grip" title="Geser untuk ubah lebar kolom" @mousedown="onGripMouseDown" /></th>
                 <th data-col="warna" style="width: 80px">Warna<span class="col-grip" title="Geser untuk ubah lebar kolom" @mousedown="onGripMouseDown" /></th>
-                <th data-col="harga" style="width: 80px" class="text-right">Harga Bahan+Ppn<span class="col-grip" title="Geser untuk ubah lebar kolom" @mousedown="onGripMouseDown" /></th>
+                <th data-col="harga" style="width: 110px" class="text-right">Harga Bahan+Ppn<span class="col-grip" title="Geser untuk ubah lebar kolom" @mousedown="onGripMouseDown" /></th>
                 <th data-col="babaran" style="width: 50px" class="text-right">Babaran<span class="col-grip" title="Geser untuk ubah lebar kolom" @mousedown="onGripMouseDown" /></th>
                 <th data-col="bruto" style="width: 90px" class="text-right">Bruto<span class="col-grip" title="Geser untuk ubah lebar kolom" @mousedown="onGripMouseDown" /></th>
                 <th data-col="pcs" style="width: 90px" class="text-right">Rp / Pcs<span class="col-grip" title="Geser untuk ubah lebar kolom" @mousedown="onGripMouseDown" /></th>
@@ -598,7 +654,7 @@ const onSesuaiPpnChange = () => {
                     <option v-for="w in WARNA_OPTS" :key="w" :value="w">{{ w }}</option>
                   </select>
                 </td>
-                <td class="ll-td-inp"><input v-model.number="row.harga" type="number" class="ll-cell tr" @change="onHargaChange(Number(idx))" /></td>
+                <td class="ll-td-inp"><input :value="fmt(row.harga)" type="text" inputmode="numeric" placeholder="0" class="ll-cell tr" @focus="onHargaFocus($event, row)" @input="onHargaInput($event, Number(idx))" @change="onHargaChange($event, Number(idx))" @blur="onHargaChange($event, Number(idx))" /></td>
                 <td class="ll-td-inp"><input v-model.number="row.babaran" type="number" step="any" class="ll-cell tr" @change="onBabaranChange(Number(idx))" /></td>
                 <td class="ll-td-inp"><input :value="fmt(row.bruto)" readonly class="ll-cell tr" /></td>
                 <td class="ll-td-inp"><input :value="fmt(row.pcs)" readonly class="ll-cell tr font-weight-bold" /></td>
@@ -658,11 +714,16 @@ const onSesuaiPpnChange = () => {
           <div class="hpp-item">
             <label class="lbl">Rp Laba</label>
             <input
-              v-model.number="formData.rpLaba"
-              type="number"
+              :value="fmt(formData.rpLaba)"
+              type="text"
+              inputmode="numeric"
+              placeholder="0"
               class="inp tr flex-1"
               :disabled="formData.pakaiPersen"
-              @change="recalcTotal"
+              @focus="onRpFocus($event, formData.rpLaba)"
+              @input="onRpInput($event, (v) => (formData.rpLaba = v))"
+              @change="onRpDone($event, () => formData.rpLaba, (v) => (formData.rpLaba = v), recalcTotal)"
+              @blur="onRpDone($event, () => formData.rpLaba, (v) => (formData.rpLaba = v), recalcTotal)"
             />
           </div>
           <div class="hpp-item">
@@ -671,7 +732,7 @@ const onSesuaiPpnChange = () => {
           </div>
           <div class="hpp-item">
             <label class="lbl">Rp Penyesuaian</label>
-            <input v-model.number="formData.rpSesuai" type="number" class="inp tr flex-1" />
+            <input :value="fmt(formData.rpSesuai)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.rpSesuai)" @input="onRpInput($event, (v) => (formData.rpSesuai = v))" @change="onRpDone($event, () => formData.rpSesuai, (v) => (formData.rpSesuai = v))" @blur="onRpDone($event, () => formData.rpSesuai, (v) => (formData.rpSesuai = v))" />
           </div>
           <div class="hpp-item">
             <label class="lbl">PPN %</label>
@@ -679,7 +740,7 @@ const onSesuaiPpnChange = () => {
           </div>
           <div class="hpp-item">
             <label class="lbl">+PPN</label>
-            <input v-model.number="formData.rpSesuaiPpn" type="number" class="inp tr flex-1" @change="onSesuaiPpnChange" />
+            <input :value="fmt(formData.rpSesuaiPpn)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.rpSesuaiPpn)" @input="onRpInput($event, (v) => (formData.rpSesuaiPpn = v))" @change="onRpDone($event, () => formData.rpSesuaiPpn, (v) => (formData.rpSesuaiPpn = v), onSesuaiPpnChange)" @blur="onRpDone($event, () => formData.rpSesuaiPpn, (v) => (formData.rpSesuaiPpn = v), onSesuaiPpnChange)" />
           </div>
         </div>
       </div>
@@ -689,12 +750,12 @@ const onSesuaiPpnChange = () => {
     <div class="km-right">
       <div class="section-card">
         <div class="sec-title">Biaya Pengerjaan <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#616161;font-size:10px">— bisa isi manual atau dari tab proses</span></div>
-        <div class="fr"><label class="lbl">Potong</label><input v-model.number="formData.rpPotong" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
-        <div class="fr"><label class="lbl">Bordir</label><input v-model.number="formData.bordir.rp" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
-        <div class="fr"><label class="lbl">Cetak</label><input v-model.number="formData.cetak.rp" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
-        <div class="fr"><label class="lbl">Sublim</label><input v-model.number="formData.sublim.rpSublim" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
-        <div class="fr"><label class="lbl">Polyflex</label><input v-model.number="formData.polyflex.rp" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
-        <div class="fr"><label class="lbl">DTF</label><input v-model.number="formData.dtf.rp" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
+        <div class="fr"><label class="lbl">Potong</label><input :value="fmt(formData.rpPotong)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.rpPotong)" @input="onRpInput($event, (v) => (formData.rpPotong = v), recalcTotal)" @change="onRpDone($event, () => formData.rpPotong, (v) => (formData.rpPotong = v), recalcTotal)" @blur="onRpDone($event, () => formData.rpPotong, (v) => (formData.rpPotong = v), recalcTotal)" /></div>
+        <div class="fr"><label class="lbl">Bordir</label><input :value="fmt(formData.bordir.rp)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.bordir.rp)" @input="onRpInput($event, (v) => (formData.bordir.rp = v), recalcTotal)" @change="onRpDone($event, () => formData.bordir.rp, (v) => (formData.bordir.rp = v), recalcTotal)" @blur="onRpDone($event, () => formData.bordir.rp, (v) => (formData.bordir.rp = v), recalcTotal)" /></div>
+        <div class="fr"><label class="lbl">Cetak</label><input :value="fmt(formData.cetak.rp)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.cetak.rp)" @input="onRpInput($event, (v) => (formData.cetak.rp = v), recalcTotal)" @change="onRpDone($event, () => formData.cetak.rp, (v) => (formData.cetak.rp = v), recalcTotal)" @blur="onRpDone($event, () => formData.cetak.rp, (v) => (formData.cetak.rp = v), recalcTotal)" /></div>
+        <div class="fr"><label class="lbl">Sublim</label><input :value="fmt(formData.sublim.rpSublim)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.sublim.rpSublim)" @input="onRpInput($event, (v) => (formData.sublim.rpSublim = v), recalcTotal)" @change="onRpDone($event, () => formData.sublim.rpSublim, (v) => (formData.sublim.rpSublim = v), recalcTotal)" @blur="onRpDone($event, () => formData.sublim.rpSublim, (v) => (formData.sublim.rpSublim = v), recalcTotal)" /></div>
+        <div class="fr"><label class="lbl">Polyflex</label><input :value="fmt(formData.polyflex.rp)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.polyflex.rp)" @input="onRpInput($event, (v) => (formData.polyflex.rp = v), recalcTotal)" @change="onRpDone($event, () => formData.polyflex.rp, (v) => (formData.polyflex.rp = v), recalcTotal)" @blur="onRpDone($event, () => formData.polyflex.rp, (v) => (formData.polyflex.rp = v), recalcTotal)" /></div>
+        <div class="fr"><label class="lbl">DTF</label><input :value="fmt(formData.dtf.rp)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.dtf.rp)" @input="onRpInput($event, (v) => (formData.dtf.rp = v), recalcTotal)" @change="onRpDone($event, () => formData.dtf.rp, (v) => (formData.dtf.rp = v), recalcTotal)" @blur="onRpDone($event, () => formData.dtf.rp, (v) => (formData.dtf.rp = v), recalcTotal)" /></div>
         <div class="fr">
           <label class="lbl">Jahit</label>
           <label class="lbl" style="width:auto;gap:4px;margin-left:2px">
@@ -706,10 +767,10 @@ const onSesuaiPpnChange = () => {
             <span class="lookup-text">{{ formData.jahit || "Pilih Biaya Jahit..." }}</span>
             <span class="lookup-help">Help ▾</span>
           </button>
-          <input v-model.number="formData.rpJahit" type="number" class="inp tr" style="width:110px;flex-shrink:0" @input="recalcTotal" @change="recalcTotal" />
+          <input :value="fmt(formData.rpJahit)" type="text" inputmode="numeric" placeholder="0" class="inp tr" style="width:110px;flex-shrink:0" @focus="onRpFocus($event, formData.rpJahit)" @input="onRpInput($event, (v) => (formData.rpJahit = v), recalcTotal)" @change="onRpDone($event, () => formData.rpJahit, (v) => (formData.rpJahit = v), recalcTotal)" @blur="onRpDone($event, () => formData.rpJahit, (v) => (formData.rpJahit = v), recalcTotal)" />
         </div>
-        <div class="fr"><label class="lbl">Finishing</label><input v-model.number="formData.rpFinishing" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
-        <div class="fr"><label class="lbl">Tenaga Cetak</label><input v-model.number="formData.rpTenagaCetak" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
+        <div class="fr"><label class="lbl">Finishing</label><input :value="fmt(formData.rpFinishing)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.rpFinishing)" @input="onRpInput($event, (v) => (formData.rpFinishing = v), recalcTotal)" @change="onRpDone($event, () => formData.rpFinishing, (v) => (formData.rpFinishing = v), recalcTotal)" @blur="onRpDone($event, () => formData.rpFinishing, (v) => (formData.rpFinishing = v), recalcTotal)" /></div>
+        <div class="fr"><label class="lbl">Tenaga Cetak</label><input :value="fmt(formData.rpTenagaCetak)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.rpTenagaCetak)" @input="onRpInput($event, (v) => (formData.rpTenagaCetak = v), recalcTotal)" @change="onRpDone($event, () => formData.rpTenagaCetak, (v) => (formData.rpTenagaCetak = v), recalcTotal)" @blur="onRpDone($event, () => formData.rpTenagaCetak, (v) => (formData.rpTenagaCetak = v), recalcTotal)" /></div>
         <div class="fr total-biaya-row"><label class="lbl">Total Biaya (d)</label><input :value="fmt(formData.totBiaya)" readonly class="inp ro tr flex-1 total-biaya-val" /></div>
       </div>
 
@@ -718,9 +779,9 @@ const onSesuaiPpnChange = () => {
         <div class="fr">
           <label class="lbl">Biaya Obat (e)</label>
           <input type="checkbox" v-model="formData.pakaiObat" style="accent-color: #1565c0" />
-          <input v-model.number="formData.rpBiayaObat" type="number" class="inp tr flex-1 ml-2" @input="recalcTotal" @change="recalcTotal" />
+          <input :value="fmt(formData.rpBiayaObat)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1 ml-2" @focus="onRpFocus($event, formData.rpBiayaObat)" @input="onRpInput($event, (v) => (formData.rpBiayaObat = v), recalcTotal)" @change="onRpDone($event, () => formData.rpBiayaObat, (v) => (formData.rpBiayaObat = v), recalcTotal)" @blur="onRpDone($event, () => formData.rpBiayaObat, (v) => (formData.rpBiayaObat = v), recalcTotal)" />
         </div>
-        <div class="fr"><label class="lbl">Biaya Kirim (f)</label><input v-model.number="formData.rpKirim" type="number" class="inp tr flex-1" @input="recalcTotal" @change="recalcTotal" /></div>
+        <div class="fr"><label class="lbl">Biaya Kirim (f)</label><input :value="fmt(formData.rpKirim)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.rpKirim)" @input="onRpInput($event, (v) => (formData.rpKirim = v), recalcTotal)" @change="onRpDone($event, () => formData.rpKirim, (v) => (formData.rpKirim = v), recalcTotal)" @blur="onRpDone($event, () => formData.rpKirim, (v) => (formData.rpKirim = v), recalcTotal)" /></div>
       </div>
 
       <div class="section-card mt-2">
@@ -736,7 +797,7 @@ const onSesuaiPpnChange = () => {
               <tr>
                 <th style="width: 28px" class="text-center">No</th>
                 <th>Aksesoris</th>
-                <th style="width: 90px" class="text-right">Biaya</th>
+                <th style="width: 110px" class="text-right">Biaya</th>
                 <th style="width: 36px"></th>
               </tr>
             </thead>
@@ -744,7 +805,7 @@ const onSesuaiPpnChange = () => {
               <tr v-for="(row, idx) in formData.aksesories" :key="idx">
                 <td class="ll-td-ctr ll-td-lbl">{{ Number(idx) + 1 }}</td>
                 <td class="ll-td-inp"><input v-model="row.aksesories" class="ll-cell text-uppercase" /></td>
-                <td class="ll-td-inp"><input v-model.number="row.biaya" type="number" class="ll-cell tr" @input="recalcTotal" @change="recalcTotal" /></td>
+                <td class="ll-td-inp"><input :value="fmt(row.biaya)" type="text" inputmode="numeric" placeholder="0" class="ll-cell tr" @focus="onRpFocus($event, row.biaya)" @input="onRpInput($event, (v) => (row.biaya = v), recalcTotal)" @change="onRpDone($event, () => row.biaya, (v) => (row.biaya = v), recalcTotal)" @blur="onRpDone($event, () => row.biaya, (v) => (row.biaya = v), recalcTotal)" /></td>
                 <td class="ll-td-ctr">
                   <button type="button" class="btn-del" @click="removeAksesorisRow(Number(idx))">
                     <IconTrash :size="13" />
@@ -1034,7 +1095,7 @@ const onSesuaiPpnChange = () => {
 }
 /* Grid komponen lebar → scroll horizontal, kolom tidak gepeng */
 .ll-table-wide {
-  min-width: 1010px;
+  min-width: 1040px;
 }
 .ll-table-wide thead th {
   position: sticky;
