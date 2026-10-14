@@ -449,6 +449,7 @@ const fmtDate = (v: string) => {
     <!-- Legend Status -->
     <template #filter-right>
       <div class="legend-wrap">
+        <span class="legend-lbl">Warna Font: </span>
         <span class="legend-dot bg-gray"></span>
         <span class="legend-lbl">Belum Approve MO</span>
         <span class="legend-dot bg-red"></span>
