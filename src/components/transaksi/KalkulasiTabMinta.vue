@@ -1,10 +1,21 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { IconPhoto } from "@tabler/icons-vue";
+import { useInfoPembayaran, fmtBayar, fmtMargin } from "@/composables/useInfoPembayaran";
 
 const props = defineProps<{ formData: any }>();
 
 const fmt = (v: any) => (Number(v) || 0).toLocaleString("id-ID");
+
+// ── Informasi Pembayaran Customer (aging Lunas / Belum Lunas) ──
+const { infoBayarRows, isLoadingInfoBayar, fetchInfoBayar } = useInfoPembayaran();
+watch(
+  () => props.formData?.mintaHarga?.custKode,
+  (kode) => {
+    void fetchInfoBayar(String(kode || ""));
+  },
+  { immediate: true },
+);
 
 // ── Gambar otomatis (sumber sama persis dengan Tab Gambar) ──
 // apathimage + '\mintaharga\' + nomorMH + '.jpg' via proxy same-origin.
@@ -137,21 +148,50 @@ onMounted(() => nextTick(autoResizeKet));
           </div>
         </div>
 
-        <div class="section-card mt-img-card">
-          <div class="sec-title">Gambar</div>
-          <div class="img-box">
-            <img
-              v-if="imgSrc && !imgError"
-              :src="imgSrc"
-              class="img-photo"
-              alt="Gambar desain"
-              @error="imgError = true"
-            />
-            <div v-else class="img-empty">
-              <IconPhoto :size="48" color="#bdbdbd" />
-              <div v-if="!nomorMH">Belum ada sumber gambar untuk Minta Harga -</div>
-              <div v-else>Gambar tidak ditemukan: {{ imgSrc }}</div>
+        <div class="mt-right">
+          <div class="section-card mt-img-card">
+            <div class="sec-title">Gambar</div>
+            <div class="img-box">
+              <img
+                v-if="imgSrc && !imgError"
+                :src="imgSrc"
+                class="img-photo"
+                alt="Gambar desain"
+                @error="imgError = true"
+              />
+              <div v-else class="img-empty">
+                <IconPhoto :size="48" color="#bdbdbd" />
+                <div v-if="!nomorMH">Belum ada sumber gambar untuk Minta Harga -</div>
+                <div v-else>Gambar tidak ditemukan: {{ imgSrc }}</div>
+              </div>
             </div>
+          </div>
+
+          <div class="section-card mt-2">
+            <div class="info-bayar-title">Informasi Pembayaran Customer</div>
+            <div v-if="formData.mintaHarga?.custKode" class="info-bayar-sub">
+              {{ formData.mintaHarga.custKode }} — {{ formData.mintaHarga.custNama }}
+              <span v-if="isLoadingInfoBayar" class="info-bayar-loading"> (memuat...)</span>
+            </div>
+            <div v-else class="info-bayar-sub text-grey">Belum terhubung ke Permintaan Harga.</div>
+            <table class="info-bayar-table">
+              <thead>
+                <tr>
+                  <th style="width: 70px">Hari</th>
+                  <th style="width: 120px">Lunas (Nominal Inv)</th>
+                  <th style="width: 120px">Belum Lunas (Sisa Piutang)</th>
+                  <th style="width: 60px">Margin %</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in infoBayarRows" :key="row.lama_hari">
+                  <td class="text-center">{{ row.lama_hari }}</td>
+                  <td class="text-right">{{ fmtBayar(row.lunas) }}</td>
+                  <td class="text-right">{{ fmtBayar(row.belumLunas) }}</td>
+                  <td class="text-right">{{ fmtMargin(row.margin) }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -189,17 +229,20 @@ onMounted(() => nextTick(autoResizeKet));
   min-width: 0;
   max-width: 680px;
 }
-.mt-img-card {
+.mt-right {
   width: 340px;
   flex-shrink: 0;
+}
+.mt-img-card {
   display: flex;
   flex-direction: column;
 }
 .img-box {
+  /* height: 100px;  atau sesuai kebutuhan */
   border: 1px solid #e0e0e0;
   border-radius: 3px;
   background: #fafafa;
-  min-height: 320px;
+  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,8 +392,55 @@ onMounted(() => nextTick(autoResizeKet));
     max-width: 100%;
     width: 100%;
   }
-  .mt-img-card {
+  .mt-right {
     width: 100%;
   }
+}
+/* ── Informasi Pembayaran Customer (replica tabel Excel di gambar) ── */
+.info-bayar-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #212121;
+  text-align: center;
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+.info-bayar-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: #424242;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.info-bayar-loading {
+  font-weight: 400;
+  color: #9e9e9e;
+}
+.info-bayar-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 13px;
+}
+.info-bayar-table th {
+  background: #00b0f0;
+  color: #000;
+  font-weight: 700;
+  font-size: 11px;
+  text-align: center;
+  border: 1px solid #000;
+  padding: 3px 6px;
+}
+.info-bayar-table td {
+  border: 1px solid #000;
+  padding: 3px 8px;
+  color: #212121;
+  background: white;
+}
+.info-bayar-table td.text-center {
+  text-align: center;
+}
+.info-bayar-table td.text-right {
+  text-align: right;
 }
 </style>

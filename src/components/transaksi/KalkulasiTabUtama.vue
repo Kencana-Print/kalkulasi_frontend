@@ -6,6 +6,7 @@ import { kalkulasiFormApi } from "@/api/transaksi/kalkulasiFormApi";
 import ModelKerjaSearchModal from "@/components/transaksi/ModelKerjaSearchModal.vue";
 import KalkulasiSearchModal from "@/components/transaksi/KalkulasiSearchModal.vue";
 import BiayaPengerjaanSearchModal from "@/components/transaksi/BiayaPengerjaanSearchModal.vue";
+import { useInfoPembayaran, type InfoBayarRow } from "@/composables/useInfoPembayaran";
 
 const props = defineProps<{
   formData: any;
@@ -519,59 +520,10 @@ const onSesuaiPpnChange = () => {
 };
 
 // ── Informasi Pembayaran Customer (aging Lunas / Belum Lunas) ──
-// Sumber: GET /transaksi/kalkulasi/form/info-pembayaran?customer=<kode>.
-// Kode diambil dari Minta Harga yang terhubung (mh_cus_kode). Selalu tampil
-// 6 baris kategori; sel kosong bila NULL (menyerupai tampilan Excel).
-interface InfoBayarRow {
-  lama_hari: string;
-  lunas: number | null;
-  belumLunas: number | null;
-  margin: number | null;
-}
-// Kolom Margin % sifatnya informasi saja — di-hardcode sesuai tabel referensi.
-const INFO_MARGIN: Record<string, number> = {
-  "0-30": 0,
-  "31-45": 0.75,
-  "46-60": 1.5,
-  "61-75": 2.25,
-  "76-90": 3,
-  ">90": 5,
-};
-const withMargin = (rows: Array<Omit<InfoBayarRow, "margin"> & { margin?: number | null }>): InfoBayarRow[] =>
-  rows.map((r) => ({ ...r, margin: INFO_MARGIN[r.lama_hari] ?? null }));
-const INFO_BAYAR_DEFAULT: InfoBayarRow[] = withMargin([
-  { lama_hari: "0-30", lunas: null, belumLunas: null },
-  { lama_hari: "31-45", lunas: null, belumLunas: null },
-  { lama_hari: "46-60", lunas: null, belumLunas: null },
-  { lama_hari: "61-75", lunas: null, belumLunas: null },
-  { lama_hari: "76-90", lunas: null, belumLunas: null },
-  { lama_hari: ">90", lunas: null, belumLunas: null },
-]);
-const infoBayarRows = ref<InfoBayarRow[]>([...INFO_BAYAR_DEFAULT]);
-const isLoadingInfoBayar = ref(false);
-const fmtBayar = (v: number | null | undefined) =>
-  v === null || v === undefined ? "" : Math.round(Number(v) || 0).toLocaleString("id-ID");
-const fmtMargin = (v: number | null | undefined) =>
-  v === null || v === undefined ? "" : String(v);
-
-const fetchInfoBayar = async (customer: string) => {
-  const kode = String(customer || "").trim();
-  if (!kode) {
-    infoBayarRows.value = [...INFO_BAYAR_DEFAULT];
-    return;
-  }
-  isLoadingInfoBayar.value = true;
-  try {
-    const res = await kalkulasiFormApi.getInfoPembayaran(kode);
-    const rows = res.data?.data;
-    infoBayarRows.value = Array.isArray(rows) && rows.length ? withMargin(rows) : [...INFO_BAYAR_DEFAULT];
-    autoFillMarginTambahan();
-  } catch {
-    infoBayarRows.value = [...INFO_BAYAR_DEFAULT];
-  } finally {
-    isLoadingInfoBayar.value = false;
-  }
-};
+// Tabel infonya kini tampil di tab Permintaan Harga (KalkulasiTabMinta),
+// fetch-nya lewat composable useInfoPembayaran. Di sini sifatnya headless:
+// data hanya dipakai untuk auto-isi Tambahan Margin % (k) kalkulasi baru.
+const { infoBayarRows, fetchInfoBayar } = useInfoPembayaran();
 
 // Tambahan Margin % (k) otomatis untuk kalkulasi BARU: cari nominal terbesar
 // di kolom Lunas; margin pada record itu dipakai mengisi k. Hanya jalan bila
@@ -597,13 +549,13 @@ const onMarginTambahanChange = () => {
   props.recalcTotal();
 };
 
-// Customer berganti (buka dokumen lain / load from / pilih MH) → refresh.
-// Dipantau dari kode MH; fallback ke nama bila kode belum ada (tidak di-fetch,
-// hanya reset ke default sampai kode tersedia).
+// Customer berganti (buka dokumen lain / load from / pilih MH) → refresh lalu
+// ulangi auto-isi margin (hanya sukses isi bila ada baris Lunas bernominal).
 watch(
   () => props.formData?.mintaHarga?.custKode,
-  (kode) => {
-    void fetchInfoBayar(String(kode || ""));
+  async (kode) => {
+    await fetchInfoBayar(String(kode || ""));
+    if (kode) autoFillMarginTambahan();
   },
   { immediate: true },
 );
@@ -859,33 +811,6 @@ watch(
 
     <!-- ── Kolom kanan: rekap biaya proses + grid aksesoris + catatan ── -->
     <div class="km-right">
-      <div class="section-card">
-        <div class="info-bayar-title">Informasi Pembayaran Customer</div>
-        <div v-if="formData?.mintaHarga?.custKode" class="info-bayar-sub">
-          {{ formData.mintaHarga.custKode }} — {{ formData.mintaHarga.custNama }}
-          <span v-if="isLoadingInfoBayar" class="info-bayar-loading"> (memuat...)</span>
-        </div>
-        <div v-else class="info-bayar-sub text-grey">Belum terhubung ke Permintaan Harga.</div>
-        <table class="info-bayar-table">
-          <thead>
-            <tr>
-              <th>Hari</th>
-              <th>Lunas (Nominal Inv)</th>
-              <th>Belum Lunas (Sisa Piutang)</th>
-              <th>Margin %</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in infoBayarRows" :key="row.lama_hari">
-              <td class="text-center">{{ row.lama_hari }}</td>
-              <td class="text-right">{{ fmtBayar(row.lunas) }}</td>
-              <td class="text-right">{{ fmtBayar(row.belumLunas) }}</td>
-              <td class="text-right">{{ fmtMargin(row.margin) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
       <div class="section-card mt-2">
         <div class="sec-title">Biaya Pengerjaan <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#616161;font-size:10px">— bisa isi manual atau dari tab proses</span></div>
         <div class="fr"><label class="lbl">Potong</label><input :value="fmt(formData.rpPotong)" type="text" inputmode="numeric" placeholder="0" class="inp tr flex-1" @focus="onRpFocus($event, formData.rpPotong)" @input="onRpInput($event, (v) => (formData.rpPotong = v), recalcTotal)" @change="onRpDone($event, () => formData.rpPotong, (v) => (formData.rpPotong = v), recalcTotal)" @blur="onRpDone($event, () => formData.rpPotong, (v) => (formData.rpPotong = v), recalcTotal)" /></div>
@@ -1401,52 +1326,5 @@ watch(
   border: 1px solid #90caf9;
   border-radius: 3px;
   padding: 1px 5px;
-}
-/* ── Informasi Pembayaran Customer (replica tabel Excel di gambar) ── */
-.info-bayar-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #212121;
-  text-align: center;
-  margin-bottom: 2px;
-  line-height: 1.3;
-}
-.info-bayar-sub {
-  font-size: 11px;
-  font-weight: 600;
-  color: #424242;
-  text-align: center;
-  margin-bottom: 6px;
-}
-.info-bayar-loading {
-  font-weight: 400;
-  color: #9e9e9e;
-}
-.info-bayar-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  font-size: 13px;
-}
-.info-bayar-table th {
-  background: #00b0f0;
-  color: #000;
-  font-weight: 700;
-  font-size: 11px;
-  text-align: center;
-  border: 1px solid #000;
-  padding: 3px 6px;
-}
-.info-bayar-table td {
-  border: 1px solid #000;
-  padding: 3px 8px;
-  color: #212121;
-  background: white;
-}
-.info-bayar-table td.text-center {
-  text-align: center;
-}
-.info-bayar-table td.text-right {
-  text-align: right;
 }
 </style>
