@@ -73,6 +73,11 @@ export const kalkulasiFormApi = {
   getMinCetak: (params: { qtyOrder: number; grade: "medium" | "premium" }) =>
     api.get(`${BASE}/min-cetak`, { params }),
 
+  // ── Informasi Pembayaran Customer (aging Lunas / Belum Lunas) ──
+  // customer: kode customer (mh_cus_kode, cth '00078')
+  getInfoPembayaran: (customer: string) =>
+    api.get(`${BASE}/info-pembayaran`, { params: { customer } }),
+
   // ── Browse Kalkulasi (UBrowsekalkulasi) ──
   getBrowse: (params: { startDate: string; endDate: string; jenis?: string }) =>
     api.get(`${BASE}/browse`, { params }),

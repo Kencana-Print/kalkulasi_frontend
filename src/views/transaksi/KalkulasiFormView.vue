@@ -88,6 +88,11 @@ const makeDefaultData = () => ({
   rpLaba: 0,
   allowancePersen: 0,
   rpAllowance: 0,
+  // Tambahan Margin (k): % disimpan di kal_margin_tambahan; Nominal (l) &
+  // Harga Jual+Tambahan (j+l) turunan runtime (tidak disimpan).
+  marginTambahanPersen: 0,
+  rpMarginTambahan: 0,
+  hargaJualPlus: 0,
   rpSesuai: 0,
   ppn: 0,
   rpSesuaiPpn: 0,
@@ -178,6 +183,8 @@ const recalcTotal = () => {
   if (hpp === 0) {
     fd.rpLaba = 0;
     fd.hargaJual = 0;
+    fd.rpMarginTambahan = 0;
+    fd.hargaJualPlus = 0;
     return;
   }
   if (fd.pakaiPersen) {
@@ -187,6 +194,9 @@ const recalcTotal = () => {
   }
   fd.rpLaba = Math.round(fd.rpLaba);
   fd.hargaJual = hpp + fd.rpLaba;
+  // Tambahan Margin: l = k/100 * j ; Harga Jual+Tambahan = j + l
+  fd.rpMarginTambahan = Math.round((Number(fd.marginTambahanPersen) / 100) * fd.hargaJual);
+  fd.hargaJualPlus = fd.hargaJual + fd.rpMarginTambahan;
 };
 
 const recalcSesuaiPpn = () => {
@@ -252,6 +262,7 @@ const {
         rpLaba: d.header.rpLaba,
         allowancePersen: d.header.allowancePersen,
         rpAllowance: d.header.rpAllowance,
+        marginTambahanPersen: d.header.marginTambahan ?? 0,
         rpSesuai: d.header.rpSesuai,
         ppn: d.header.ppn,
         rpSesuaiPpn: d.header.rpSesuaiPpn,
@@ -345,6 +356,7 @@ const {
         rpLaba: n.header.rpLaba,
         allowancePersen: n.header.allowancePersen,
         rpAllowance: n.header.rpAllowance,
+        marginTambahanPersen: n.header.marginTambahan ?? 0,
         rpSesuai: n.header.rpSesuai,
         ppn: n.header.ppn,
         rpSesuaiPpn: n.header.rpSesuaiPpn,
@@ -435,6 +447,7 @@ const {
         rpLaba: data.rpLaba,
         allowancePersen: data.allowancePersen,
         rpAllowance: data.rpAllowance,
+        marginTambahan: data.marginTambahanPersen,
         rpSesuai: data.rpSesuai,
         ppn: data.ppn,
         rpSesuaiPpn: data.rpSesuaiPpn,
@@ -507,7 +520,7 @@ const validateSave = () => {
 // sebelum Bruto & Kebutuhan dihitung runtime (tidak tersimpan di DB) → hitung
 // ulang tiap baris + total agar tampilan konsisten. ppnGlobal juga bukan
 // bagian snapshot (di-set sesudah fetch) → dipertahankan.
-const handleCancel = () => {
+const restoreFormToOriginal = () => {
   const ppnGlobal = formData.value.ppnGlobal;
   executeCancel();
   formData.value.ppnGlobal = ppnGlobal;
@@ -515,6 +528,10 @@ const handleCancel = () => {
     if (Number(r.harga) && Number(r.babaran)) recalcKomponenRow(i);
   });
   recalcTotal();
+};
+
+const handleCancel = () => {
+  restoreFormToOriginal();
   toast.info("Perubahan dibatalkan.");
 };
 
@@ -563,7 +580,11 @@ const tabs = [
 ];
 
 const handleClose = () => {
-  // delegasikan ke composable — goBack() sudah menangani browseRoute + fallback history.back()
+  // Otomatis jalankan proses Batal dulu sebelum keluar — mengembalikan data
+  // ke semula supaya perubahan yang belum disimpan tidak terbawa saat data
+  // yang sama dibuka ulang (user sering langsung klik Tutup tanpa klik
+  // Batal dulu). Setelah itu baru delegasikan ke composable untuk goBack().
+  restoreFormToOriginal();
   executeClose();
 };
 </script>
