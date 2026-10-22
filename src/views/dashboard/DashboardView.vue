@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
 import { useAuthStore } from "@/stores/authStore";
 import { systemApi, type SystemInfo } from "@/api/systemApi";
 import { dashboardApi, type DashboardSummary, type TodayActivityRow } from "@/api/dashboardApi";
@@ -28,6 +29,7 @@ import PageLayout from "@/components/PageLayout.vue";
 
 const authStore = useAuthStore();
 const router = useRouter();
+const toast = useToast();
 const appVersion = __APP_VERSION__;
 
 const greeting = computed(() => {
@@ -128,6 +130,18 @@ const statusStyle = (s: string) => {
   if (s === "BELUM") return "color: #6e6d6d; font-weight: 700;";
   if (s === "CANCEL") return "color: #1565c0; text-decoration: line-through;";
   return "";
+};
+
+const openKalkulasi = (noKalkulasi: string) => {
+  if (!noKalkulasi || noKalkulasi === "—") return;
+  if (!canViewKalkulasi.value) {
+    toast.warning("Anda tidak memiliki izin untuk melihat/mengubah Kalkulasi.");
+    return;
+  }
+  router.push({
+    name: "KalkulasiEdit",
+    params: { nomor: encodeURIComponent(noKalkulasi) },
+  });
 };
 
 
@@ -393,7 +407,11 @@ const statusStyle = (s: string) => {
               class="activity-row"
               :title="`${row.NoKalkulasi} • ${row.NoPermintaan}`"
             >
-              <span class="activity-nomor">{{ row.NoKalkulasi }}</span>
+              <span
+                class="activity-nomor activity-link"
+                title="Klik untuk ubah data"
+                @click.stop="openKalkulasi(row.NoKalkulasi)"
+              >{{ row.NoKalkulasi }}</span>
               <span class="activity-dim">{{ fmtDateTime(row.TglKalkulasi) }}</span>
               <span :style="statusStyle(row.Status)">{{ row.Status || "—" }}</span>
               <span class="activity-user">{{ row.Created || "—" }}</span>
@@ -819,6 +837,14 @@ const statusStyle = (s: string) => {
   color: #1565c0;
   font-weight: 700;
   white-space: nowrap;
+}
+.activity-link {
+  cursor: pointer;
+  transition: color 0.15s, text-decoration 0.15s;
+}
+.activity-link:hover {
+  text-decoration: underline;
+  color: #0d47a1;
 }
 .activity-dim {
   color: #4b5563;
