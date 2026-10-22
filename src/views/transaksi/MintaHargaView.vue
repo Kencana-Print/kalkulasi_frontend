@@ -51,7 +51,15 @@ const firstJan = new Date(now.getFullYear(), 0, 1);
 const savedP = getSavedPeriode();
 
 // Status yang dikenal mh_status (daftar dashboard + CANCEL/DONE)
-const STATUS_OPTIONS = ["BELUM", "MINTA", "NEGO", "WAIT", "CANCEL", "DONE"];
+const STATUS_OPTIONS = [
+  "BELUM",
+  "MINTA",
+  "NEGO",
+  "WAIT",
+  "BELUM DIVERIFIKASI",
+  "CANCEL",
+  "DONE",
+];
 
 // ?filter=STATUS dari kartu dashboard: paksa status + periode Jan tahun
 // berjalan s/d hari ini (mengalahkan simpanan session).
@@ -236,7 +244,7 @@ const getRowExcelStyle = (row: any) => {
   // Return fontColor & fillColor (dalam format HEX tanpa '#')
   // return { fillColor: "FFCDD2", fontColor: "B71C1C", bold: true }; 
   if (status === "MINTA") {
-    return { fontColor: "D32F2F", bold: true }; // Merah
+    return { fontColor: "F70606", bold: true }; // Merah
   }
   if (status === "WAIT") {
     return { fontColor: "2E7D32", bold: true }; // Hijau
@@ -250,6 +258,9 @@ const getRowExcelStyle = (row: any) => {
   if (status === "CANCEL") {
     return { fontColor: "1976D2" }; // Biru
   }
+  if (status === "BELUM DIVERIFIKASI") {
+    return { fontColor: "E65100" }; // Oranye
+  }
   return null;
 };
 
@@ -259,11 +270,12 @@ const rowPropsFn = (data: any) => {
   const row: MintaHargaRow = data?.item?.raw ?? data?.item ?? data;
   const status = row?.Status ?? "";
 
-  if (status === "MINTA") return { style: "color: #d32f2f; font-weight: 600;" }; // Merah
+  if (status === "MINTA") return { style: "color: #f70606; font-weight: 600;" }; // Merah
   if (status === "WAIT") return { style: "color: #2e7d32; font-weight: 600;" };  // Hijau
    if (status === "NEGO") return { style: "color: #7b1fa2; font-weight: 600;" };  // Hijau
   if (status === "BELUM") return { style: "color: #757575; font-weight: 500;" }; // Abu-abu
   if (status === "CANCEL") return { style: "color: #1976d2; text-decoration: line-through;" }; // Biru Coret
+  if (status === "BELUM DIVERIFIKASI") return { style: "color: #e65100; font-weight: 600;" }; // Oranye
 
   return {};
 };
@@ -460,6 +472,8 @@ const fmtDate = (v: string) => {
         <span class="legend-lbl">Wait</span>
         <span class="legend-dot bg-blue"></span>
         <span class="legend-lbl">Cancel</span>
+        <span class="legend-dot bg-orange"></span>
+        <span class="legend-lbl">Belum diVerifikasi</span>
       </div>
     </template>
 
@@ -639,10 +653,11 @@ const fmtDate = (v: string) => {
   flex-shrink: 0;
 }
 .bg-gray { background-color: #757575; }
-.bg-red { background-color: #d32f2f; }
+.bg-red { background-color: #f70606; }
 .bg-purple { background-color: #ef04f3; }
 .bg-green { background-color: #2e7d32; }
 .bg-blue { background-color: #1976d2; }
+.bg-blue { background-color: #e65100; }
 
 .legend-lbl {
   font-size: 11px;

@@ -6,6 +6,7 @@ export interface DashboardSummary {
   minta: { count: number };
   nego: { count: number };
   wait: { count: number };
+  belumVerif: { count: number };
 }
 
 export interface TodayActivityRow {

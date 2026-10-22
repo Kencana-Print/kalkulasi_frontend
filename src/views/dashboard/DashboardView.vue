@@ -22,6 +22,7 @@ import {
   IconChevronRight,
   IconTrendingUp,
   IconFileInvoice,
+  IconClipboardCheck,
 } from "@tabler/icons-vue";
 import PageLayout from "@/components/PageLayout.vue";
 
@@ -57,6 +58,7 @@ const summaryData = ref<DashboardSummary>({
   minta: { count: 0 },
   nego: { count: 0 },
   wait: { count: 0 },
+  belumVerif: { count: 0 },
 });
 const isSummaryLoading = ref(true);
 
@@ -218,7 +220,7 @@ const statusStyle = (s: string) => {
         <IconAlertCircle :size="14" style="color: #c62828" />
         Tugas Menunggu
       </h3>
-      <div class="task-grid">
+      <div class="task-grid" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; width: 100%;">
 
         <!-- BELUM -->
         <div v-if="canViewKalkulasi"
@@ -309,7 +311,30 @@ const statusStyle = (s: string) => {
           <div class="task-label">WAIT</div>
         </div>
 
-      </div> 
+        <!-- BELUM DIVERIFIKASI -->
+        <div
+          v-if="canViewKalkulasi"
+          class="task-card task-orange"
+          @click="
+            router.push({
+              path: '/transaksi/minta-harga',
+              query: { filter: 'BELUM DIVERIFIKASI' },
+            })
+          ">
+          <div class="task-top">
+            <div class="task-icon-wrap orange">
+              <IconClipboardCheck :size="20" />
+            </div>
+            <IconChevronRight :size="14" class="task-arrow" />
+          </div>
+          <div class="task-count">
+            <span v-if="isSummaryLoading">—</span>
+            <span v-else>{{ summaryData.belumVerif?.count ?? 0 }}</span>
+          </div>
+          <div class="task-label">BELUM DIVERIFIKASI</div>
+        </div>
+
+      </div>
 
       <!-- ── Aksi Cepat ── -->
       <h3 class="section-title" style="margin-top: 28px">
@@ -517,16 +542,20 @@ const statusStyle = (s: string) => {
 
 /* ── Task Grid ── */
 .task-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   gap: 12px;
   margin-bottom: 28px;
+  width: 100%;
 }
 .task-card {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
@@ -554,7 +583,7 @@ const statusStyle = (s: string) => {
   background: #ff00e1;
 }
 .task-orange::before {
-  color: #e65100;
+  background: #e65100;
 }
 .task-blue::before {
   background: #1565c0;
@@ -616,7 +645,7 @@ const statusStyle = (s: string) => {
   color: #6e6d6d;
 }
 .task-red .task-count {
-  color: #c62828;
+  color: #f70606;
 }
 .task-purple .task-count {
   color: #ff00e1;
@@ -636,6 +665,9 @@ const statusStyle = (s: string) => {
   font-weight: 600;
   color: #374151;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .task-sub {
   font-size: 10px;
@@ -857,10 +889,22 @@ const statusStyle = (s: string) => {
     font-size: 20px;
   }
   .task-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(5, minmax(110px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .task-card {
+    padding: 10px;
+  }
+  .task-icon-wrap {
+    width: 32px;
+    height: 32px;
   }
   .task-count {
-    font-size: 22px;
+    font-size: 20px;
+  }
+  .task-label {
+    font-size: 10px;
   }
   .dash-greeting {
     flex-direction: column;
@@ -868,9 +912,6 @@ const statusStyle = (s: string) => {
   }
 }
 @media (max-width: 480px) {
-  .task-grid {
-    grid-template-columns: 1fr 1fr;
-  }
   .quick-actions .qa-btn span {
     display: none;
   }
