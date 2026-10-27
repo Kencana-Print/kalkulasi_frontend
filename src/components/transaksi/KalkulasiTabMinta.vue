@@ -102,7 +102,7 @@ onMounted(() => nextTick(autoResizeKet));
                 <input :value="fmt(formData.mintaHarga.jmlOrder)" readonly class="inp ro tr flex-1" />
               </div>
               <div class="grp">
-                <label class="lbl lbl-sub2">Harga Jual</label>
+                <label class="lbl lbl-sub2">Harga Lama</label>
                 <input :value="fmt(formData.mintaHarga.hargaJual)" readonly class="inp ro tr flex-1" />
               </div>
               <div class="grp">
