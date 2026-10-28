@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/authStore";
 import { useForm } from "@/composables/useForm";
 import BaseForm from "@/components/BaseForm.vue";
 import { kalkulasiFormApi } from "@/api/transaksi/kalkulasiFormApi";
@@ -19,6 +20,7 @@ import KalkulasiTabGambar from "@/components/transaksi/KalkulasiTabGambar.vue";
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+const authStore = useAuthStore();
 const activeTab = ref(0);
 const setActiveTab = (idx: number) => (activeTab.value = idx);
 
@@ -536,6 +538,12 @@ const handleCancel = () => {
 };
 
 onMounted(async () => {
+  if (authStore.user?.menus?.length && !authStore.can("22", "edit")) {
+    toast.error("Akses ditolak: Anda tidak memiliki hak edit untuk menu Permintaan Harga.");
+    router.replace({ name: "MintaHarga" });
+    return;
+  }
+
   // fetchData() (kalau mode edit/dari-minta-harga) mengganti formData.value
   // sepenuhnya dari hasil fetchApi — jadi ppnGlobal WAJIB di-set SESUDAHNYA,
   // bukan sebelum, supaya tidak ikut tertimpa.

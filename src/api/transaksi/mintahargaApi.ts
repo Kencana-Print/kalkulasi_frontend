@@ -41,6 +41,18 @@ export interface MintaHargaRow {
   KetBeli: string;
 }
 
+export interface KomponenDetailRow {
+  no: number;
+  komponen: string;
+  kg: boolean;
+  pabrik: boolean;
+  jenisKain: string;
+  lengan: string;
+  warna: string;
+  harga: number;
+  babaran: number;
+}
+
 export const mintahargaApi = {
   getDivisi: async (): Promise<DivisiOption[]> => {
     const res = await api.get("/transaksi/minta-harga/divisi");
@@ -56,6 +68,11 @@ export const mintahargaApi = {
     const res = await api.get("/transaksi/minta-harga", {
       params: { startDate, endDate, divisi, status: status || undefined },
     });
+    return res.data.data;
+  },
+
+  getDetail: async (nomor: string): Promise<KomponenDetailRow[]> => {
+    const res = await api.get(`/transaksi/minta-harga/detail/${encodeURIComponent(nomor)}`);
     return res.data.data;
   },
 

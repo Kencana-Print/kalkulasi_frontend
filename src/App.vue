@@ -48,6 +48,11 @@ const checkForUpdate = async () => {
 };
 
 onMounted(() => {
+  // Sync data user & hak akses terbaru dari database
+  if (authStore.isAuthenticated) {
+    authStore.refreshUser();
+  }
+
   // 1. Cek saat aplikasi pertama kali dimuat
   checkForUpdate();
 

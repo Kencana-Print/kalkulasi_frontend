@@ -84,6 +84,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "11",
+        action: "insert",
         title: "Tambah Pekerjaan",
         browseRoute: "MasterPekerjaan",
       },
@@ -96,6 +97,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "11",
+        action: "edit",
         title: "Ubah Pekerjaan",
         browseRoute: "MasterPekerjaan",
       },
@@ -119,6 +121,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "12",
+        action: "insert",
         title: "Tambah Biaya Pengerjaan",
         browseRoute: "MasterBiaya",
       },
@@ -131,6 +134,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "12",
+        action: "edit",
         title: "Ubah Biaya Pengerjaan",
         browseRoute: "MasterBiaya",
       },
@@ -156,6 +160,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "22",
+        action: "edit",
         title: "Ubah Kalkulasi (via Permintaan Harga)",
         browseRoute: "MintaHarga",
       },
@@ -170,6 +175,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "22",
+        action: "edit",
         title: "Buat Kalkulasi Harga",
         browseRoute: "MintaHarga",
       },
@@ -182,6 +188,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "22",
+        action: "edit",
         title: "Ubah Kalkulasi",
         browseRoute: "MintaHarga",
       },
@@ -207,6 +214,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "1",
+        action: "insert",
         title: "Tambah User",
         browseRoute: "MasterUser",
       },
@@ -219,6 +227,7 @@ const router = createRouter({
         layout: "DefaultLayout",
         requiresAuth: true,
         menuId: "1",
+        action: "edit",
         title: "Ubah User",
         browseRoute: "MasterUser",
       },
@@ -259,15 +268,26 @@ router.beforeEach((to) => {
   if (to.name === "Login" && authStore.isAuthenticated)
     return { name: "Dashboard" };
 
-  // Hanya cek permission kalau menus sudah ada isinya
+  // Cek permission menu
   const menuId = to.meta.menuId as string | undefined;
-  if (
-    menuId &&
-    menuId !== "0" &&
-    authStore.user?.menus?.length &&
-    !authStore.can(menuId, "view")
-  )
-    return { name: "Unauthorized", query: { from: to.fullPath } };
+  if (menuId && menuId !== "0" && authStore.user?.menus?.length) {
+    // 1. Cek izin view
+    if (!authStore.can(menuId, "view")) {
+      return { name: "Unauthorized", query: { from: to.fullPath } };
+    }
+
+    // 2. Cek izin action spesifik (insert / edit) jika route mensyaratkan
+    const action = to.meta.action as
+      | "view"
+      | "insert"
+      | "edit"
+      | "delete"
+      | "print"
+      | undefined;
+    if (action && action !== "view" && !authStore.can(menuId, action)) {
+      return { name: "Unauthorized", query: { from: to.fullPath } };
+    }
+  }
 });
 
 export default router;

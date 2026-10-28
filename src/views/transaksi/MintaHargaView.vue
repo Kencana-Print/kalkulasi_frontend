@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/authStore";
 import { isAuthExpiredError } from "@/api/axios";
 import { exportExcel, exportExcelSingle, type ExcelColumn } from "@/utils/excelExport";
 import BaseBrowse from "@/components/BaseBrowse.vue";
@@ -9,6 +10,7 @@ import {
   mintahargaApi,
   type MintaHargaRow,
   type DivisiOption,
+  type KomponenDetailRow,
 } from "@/api/transaksi/mintahargaApi";
 import {
   IconCalculator,
@@ -21,9 +23,13 @@ import {
 const router = useRouter();
 const route = useRoute();
 const toast = useToast();
+const authStore = useAuthStore();
 
 // Samakan MENU_ID dengan yang terdaftar pada sistem backend routes (misal "22")
 const MENU_ID = "22";
+
+const canEdit = computed(() => authStore.can(MENU_ID, "edit"));
+const canDelete = computed(() => authStore.can(MENU_ID, "delete"));
 
 // ── Periode & Filter State ───────────────────────────────────────────
 const STORAGE_KEY = "kalklasi_periode_minta_harga";
@@ -93,6 +99,33 @@ const isLoading = ref(false);
 const selected = ref<MintaHargaRow[]>([]);
 
 const selectedItem = computed(() => selected.value[0] ?? null);
+
+// ── Expand master-detail (Komponen Bahan Kalkulasi) ──
+const expanded = ref<any[]>([]);
+const detailsMap = ref<Record<string, KomponenDetailRow[]>>({});
+const loadingDetails = ref<Set<string>>(new Set<string>());
+
+const getItemKey = (item: any) =>
+  typeof item === "string" ? item : (item?.Nomor ?? item?.raw?.Nomor ?? "");
+
+const onExpandedChange = async (rows: any[]) => {
+  expanded.value = rows;
+  for (const r of rows) {
+    const nomor = getItemKey(r);
+    if (!nomor || detailsMap.value[nomor] || loadingDetails.value.has(nomor)) continue;
+    loadingDetails.value.add(nomor);
+    try {
+      const data = await mintahargaApi.getDetail(nomor);
+      detailsMap.value[nomor] = data;
+    } catch (e: any) {
+      if (!isAuthExpiredError(e)) {
+        toast.error(e.response?.data?.message ?? "Gagal memuat detail komponen bahan.");
+      }
+    } finally {
+      loadingDetails.value.delete(nomor);
+    }
+  }
+};
 
 // Quick Filter Data Sesuai Input Text
 const filteredItems = computed(() => {
@@ -297,6 +330,10 @@ const requireSelected = () => {
 };
 
 const onKalkulasi = () => {
+  if (!canEdit.value) {
+    toast.error("Akses ditolak: Anda tidak memiliki hak edit untuk menu Permintaan Harga.");
+    return;
+  }
   if (!requireSelected()) return;
   const row = selectedItem.value!;
   if (row.Status === "BELUM") {
@@ -319,6 +356,10 @@ const onKalkulasi = () => {
 };
 
 const onRowDblClick = (row: MintaHargaRow) => {
+  if (!canEdit.value) {
+    toast.error("Akses ditolak: Anda tidak memiliki hak edit untuk menu Permintaan Harga.");
+    return;
+  }
   selected.value = [row];
   onKalkulasi();
 };
@@ -363,6 +404,10 @@ const deleteType = ref<"KALKULASI" | "PEN1" | "PEN2">("KALKULASI");
 const isDeleting = ref(false);
 
 const openDeleteConfirm = (type: "KALKULASI" | "PEN1" | "PEN2") => {
+  if (!canDelete.value) {
+    toast.error("Akses ditolak: Anda tidak memiliki hak hapus.");
+    return;
+  }
   if (!requireSelected()) return;
   const row = selectedItem.value!;
 
@@ -394,6 +439,7 @@ const confirmDelete = async () => {
     }
 
     toast.success("Data berhasil dihapus.");
+    delete detailsMap.value[row.Nomor];
     showDeleteModal.value = false;
     await loadData();
   } catch (e: any) {
@@ -425,6 +471,10 @@ const fmtDate = (v: string) => {
     item-value="Nomor"
     v-model:selected="selected"
     :row-props-fn="rowPropsFn"
+    :show-expand="true"
+    :expanded="expanded"
+    :loading-details="loadingDetails"
+    @update:expanded="onExpandedChange"
     @refresh="loadData"
     @row-dblclick="onRowDblClick"
   >
@@ -483,7 +533,7 @@ const fmtDate = (v: string) => {
         size="small"
         color="primary"
         variant="flat"
-        :disabled="!selectedItem"
+        :disabled="!selectedItem || !canEdit"
         @click="onKalkulasi"
       >
         <template #prepend><IconCalculator :size="15" /></template>
@@ -498,7 +548,7 @@ const fmtDate = (v: string) => {
             color="teal-darken-1"
             variant="tonal"
             v-bind="props"
-            :disabled="!selectedItem"
+            :disabled="!selectedItem || !canEdit"
           >
             <template #prepend><IconTag :size="15" /></template>
             Penawaran
@@ -525,7 +575,7 @@ const fmtDate = (v: string) => {
         size="small"
         color="error"
         variant="tonal"
-        :disabled="!selectedItem"
+        :disabled="!selectedItem || !canDelete"
         @click="openDeleteConfirm('KALKULASI')"
       >
         <template #prepend><IconTrash :size="15" /></template>
@@ -559,6 +609,50 @@ const fmtDate = (v: string) => {
     <template #item.HargaKalkulasi="{ value }">{{ fmt(value) }}</template>
     <template #item.HargaPenawaran1="{ value }">{{ fmt(value) }}</template>
     <template #item.HargaPenawaran2="{ value }">{{ fmt(value) }}</template>
+
+    <!-- Master-Detail: Komponen Bahan -->
+    <template #detail="{ item }">
+      <div class="dtl-wrap">
+        <div v-if="loadingDetails.has(getItemKey(item))" class="dtl-loading">
+          Memuat detail komponen bahan...
+        </div>
+        <table v-else class="dtl-table">
+          <thead>
+            <tr>
+              <th style="width: 36px" class="text-center">No</th>
+              <th style="width: 130px">Komponen</th>
+              <th style="width: 44px" class="text-center">Kg</th>
+              <th style="width: 50px" class="text-center">Pabrik</th>
+              <th style="min-width: 180px">Jenis Kain</th>
+              <th style="width: 100px">Lengan/Rib</th>
+              <th style="width: 90px">Warna</th>
+              <th style="width: 120px" class="text-right">Harga Bahan + Ppn</th>
+              <th style="width: 80px" class="text-right">Babaran</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(d, i) in detailsMap[getItemKey(item)] ?? []" :key="i">
+              <td class="text-center">{{ d.no ?? i + 1 }}</td>
+              <td>{{ d.komponen }}</td>
+              <td class="text-center">
+                {{ d.kg ? "YA" : "" }}
+              </td>
+              <td class="text-center">
+                {{ d.pabrik ? "YA" : "" }}
+              </td>
+              <td>{{ d.jenisKain }}</td>
+              <td>{{ d.lengan }}</td>
+              <td>{{ d.warna }}</td>
+              <td class="text-right">{{ fmt(d.harga) }}</td>
+              <td class="text-right">{{ d.babaran }}</td>
+            </tr>
+            <tr v-if="!(detailsMap[getItemKey(item)]?.length)">
+              <td colspan="9" class="text-center text-grey">Tidak ada detail komponen bahan.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
   </BaseBrowse>
 
   <!-- Confirm Modal Delete -->
@@ -683,5 +777,55 @@ const fmtDate = (v: string) => {
 .usr-darul {
   background-color: #388e3c;
   color: white;
+}
+
+/* Master-detail styling */
+.dtl-wrap {
+  padding: 6px 4px;
+  width: 100%;
+  max-width: 950px;
+}
+.dtl-loading {
+  font-size: 12px;
+  color: #757575;
+  font-style: italic;
+  padding: 6px;
+}
+.dtl-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 11px;
+}
+.dtl-table thead th {
+  background: #1565c0;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 5px 8px;
+  border: 1px solid #0d47a1;
+  text-align: left;
+}
+.dtl-table td {
+  border: 1px solid #eeeeee;
+  padding: 4px 8px;
+  color: #212121;
+}
+.dtl-table tr:nth-of-type(even) td {
+  background: #fafafa;
+}
+.dtl-table .text-right {
+  text-align: right;
+}
+.dtl-table .text-center {
+  text-align: center;
+}
+.dtl-table .text-grey {
+  color: #9e9e9e;
+  font-style: italic;
+}
+.dtl-checkbox {
+  accent-color: #1565c0;
+  cursor: default;
+  vertical-align: middle;
 }
 </style>

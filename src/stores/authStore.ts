@@ -43,7 +43,7 @@ export const useAuthStore = defineStore("auth", () => {
     action: "view" | "insert" | "edit" | "delete" | "print" = "view",
   ): boolean => {
     if (isAdmin.value) return true;
-    if (!user.value?.menus?.length) return true;
+    if (!user.value?.menus?.length) return false;
 
     const menu = user.value.menus.find(
       (m) => String(m.menu_id) === String(menuId),
