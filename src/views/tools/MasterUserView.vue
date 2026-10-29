@@ -75,7 +75,12 @@ const confirmDelete = async () => {
   }
 };
 
-const doExport = () => exportMasterUser(items.value ?? []);
+const doExport = (filteredRows?: any[]) =>
+  exportMasterUser(
+    filteredRows && Array.isArray(filteredRows)
+      ? filteredRows
+      : items.value ?? [],
+  );
 </script>
 
 <template>
@@ -97,7 +102,7 @@ const doExport = () => exportMasterUser(items.value ?? []);
     @edit="onEdit"
   >
     <!-- ── Extra actions ── -->
-    <template #extra-actions>
+    <template #extra-actions="{ filteredItems }">
       <v-btn
         v-if="canDelete"
         size="small"
@@ -113,7 +118,7 @@ const doExport = () => exportMasterUser(items.value ?? []);
         size="small"
         variant="tonal"
         color="success"
-        @click="doExport"
+        @click="doExport(filteredItems)"
       >
         <template #prepend>
           <IconFileSpreadsheet :size="13" :stroke-width="1.8" />

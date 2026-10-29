@@ -75,17 +75,19 @@ export function useBrowse<T = any>(options: UseBrowseOptions<T>) {
     }
   };
 
-  const exportToExcel = (fileName = "Export_Data") => {
+  const exportToExcel = (fileName = "Export_Data", customRows?: any[]) => {
     if (!canExport.value) {
       toast.error("Akses ditolak.");
       return;
     }
-    if (!items.value?.length) {
+    const dataToExport =
+      customRows && Array.isArray(customRows) ? customRows : items.value;
+    if (!dataToExport?.length) {
       toast.warning("Tidak ada data untuk diexport.");
       return;
     }
     try {
-      const ws = XLSX.utils.json_to_sheet(items.value);
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Data");
       XLSX.writeFile(wb, `${fileName}.xlsx`);

@@ -79,7 +79,7 @@ const endDate = ref(savedP?.endDate ?? getLocal(now));
 const selectedDivisi = ref("0");
 const selectedStatus = ref(fromDashboard ? queryFilter : "");
 const divisiOptions = ref<DivisiOption[]>([]);
-const searchText = ref("");
+const browseRef = ref<any>(null);
 
 watch([startDate, endDate, selectedDivisi, selectedStatus], ([s, e]) => {
   try {
@@ -127,19 +127,7 @@ const onExpandedChange = async (rows: any[]) => {
   }
 };
 
-// Quick Filter Data Sesuai Input Text
-const filteredItems = computed(() => {
-  if (!searchText.value.trim()) return items.value;
-  const q = searchText.value.toLowerCase().trim();
-  return items.value.filter(
-    (item) =>
-      item.Nomor?.toLowerCase().includes(q) ||
-      item.Customer?.toLowerCase().includes(q) ||
-      item.NamaPekerjaan?.toLowerCase().includes(q) ||
-      item.Sales?.toLowerCase().includes(q)
-  );
-});
-
+// ── Headers ───────────────────────────────────────────────────────────
 const headers = [
   { key: "Nomor", title: "Nomor", width: "140px" },
   { key: "Divisi", title: "Divisi", width: "110px" },
@@ -203,8 +191,13 @@ onMounted(async () => {
 });
 
 // ── Export Excel Handler ──────────────────────────────────────────────
-const onExportExcel = async () => {
-  if (!filteredItems.value || filteredItems.value.length === 0) {
+const onExportExcel = async (customRows?: any[]) => {
+  const dataToExport =
+    customRows && Array.isArray(customRows)
+      ? customRows
+      : browseRef.value?.filteredItems ?? items.value ?? [];
+
+  if (!dataToExport || dataToExport.length === 0) {
     toast.warning("Tidak ada data untuk diexport.");
     return;
   }
@@ -243,29 +236,17 @@ const onExportExcel = async () => {
     const fileName = `Browse_Kalkulasi_Harga_${startDate.value}_sd_${endDate.value}.xlsx`;
     const title = `LAPORAN KALKULASI HARGA (${startDate.value} s/d ${endDate.value})`;
 
-    // Panggil helper exportExcelSingle
-    // await exportExcelSingle(
-    //   fileName,
-    //   "Kalkulasi Harga",
-    //   columns,
-    //   filteredItems.value,
-    //   title
-    // );
-
     // Panggil exportExcel dengan opsi rowStyleFn
     await exportExcel(fileName, [
       {
         sheetName: "Minta Harga",
         columns,
-        rows: filteredItems.value,
+        rows: dataToExport,
         title,
-        rowStyleFn: getRowExcelStyle, // ⬅️ Masukkan fungsi warna di sini
+        rowStyleFn: getRowExcelStyle,
       },
     ]);    
-
-    // toast.success("Data berhasil diexport ke Excel!");
   } catch (error) {
-    // console.error("Export Error:", error);
     toast.error("Gagal melakukan export data.");
   }
 };
@@ -461,11 +442,12 @@ const fmtDate = (v: string) => {
 
 <template>
   <BaseBrowse
+    ref="browseRef"
     title="Browse Permintaan Harga"
     :icon="IconCalculator"
     :menu-id="MENU_ID"
     :headers="headers"
-    :items="filteredItems"
+    :items="items"
     :is-loading="isLoading"
     :fixed-layout="false"
     item-value="Nomor"
@@ -528,7 +510,7 @@ const fmtDate = (v: string) => {
     </template>
 
     <!-- Header Action Buttons -->
-    <template #extra-actions>
+    <template #extra-actions="{ filteredItems: browseFilteredItems }">
       <v-btn
         size="small"
         color="primary"
@@ -582,7 +564,12 @@ const fmtDate = (v: string) => {
         Hapus Kalkulasi
       </v-btn>
 
-      <v-btn size="small" variant="tonal" color="success" @click="onExportExcel">
+      <v-btn
+        size="small"
+        variant="tonal"
+        color="success"
+        @click="onExportExcel(browseFilteredItems)"
+      >
         <template #prepend
           ><IconFileSpreadsheet :size="13" :stroke-width="1.8"
         /></template>

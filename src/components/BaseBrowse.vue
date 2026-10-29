@@ -48,7 +48,7 @@ const props = withDefaults(
     filterState?: Record<string, any>;
     summaryKey?: string;
     summaryLabel?: string;
-    exportFn?: () => void | Promise<void>;
+    exportFn?: (items?: any[]) => void | Promise<void>;
     fixedLayout?: boolean;
     filterValues?: Record<string, any>;
     autoRefresh?: boolean;
@@ -205,6 +205,22 @@ const selectAllCol = (key: string) => {
 const hideAllCol = (key: string) => {
   columnFilters.value[key] = new Set();
   columnFilters.value = { ...columnFilters.value };
+  currentPage.value = 1;
+};
+const selectOnlySearch = (key: string) => {
+  const searchResults = filteredUniqueVals(key);
+  columnFilters.value[key] = new Set(searchResults);
+  columnFilters.value = { ...columnFilters.value };
+  currentPage.value = 1;
+};
+const selectOnlyThis = (key: string, val: string) => {
+  columnFilters.value[key] = new Set([val]);
+  columnFilters.value = { ...columnFilters.value };
+  currentPage.value = 1;
+};
+const resetAllFilters = () => {
+  columnFilters.value = {};
+  colFilterSearch.value = {};
   currentPage.value = 1;
 };
 const openColFilter = (key: string, event: MouseEvent) => {
@@ -433,7 +449,7 @@ const clearSelection = () => {
 const tableLayout = computed(() => (props.fixedLayout ? "fixed" : "auto"));
 const tdMaxWidth = computed(() => (props.fixedLayout ? "0" : "none"));
 
-defineExpose({ clearSelection, search });
+defineExpose({ clearSelection, search, filteredItems });
 watch(
   () => filteredItems.value.length,
   () => {
@@ -478,14 +494,18 @@ watch(
         v-if="canExport && props.exportFn"
         size="small"
         color="success"
-        @click="props.exportFn?.()"
+        @click="props.exportFn?.(filteredItems)"
       >
         <template #prepend>
           <IconFileSpreadsheet :size="14" :stroke-width="1.8" />
         </template>
         Export
       </v-btn>
-      <slot name="extra-actions" :selected="internalSelected" />
+      <slot
+        name="extra-actions"
+        :selected="internalSelected"
+        :filtered-items="filteredItems"
+      />
       <v-btn size="small" variant="text" @click="$router.push('/')">
         <template #prepend><IconX :size="14" :stroke-width="2.2" /></template>
         Tutup
@@ -530,7 +550,7 @@ watch(
           size="small"
           color="warning"
           variant="tonal"
-          @click="columnFilters = {}"
+          @click="resetAllFilters"
         >
           <template #prepend
             ><IconFilterOff :size="14" :stroke-width="1.8"
@@ -825,31 +845,60 @@ watch(
         />
       </div>
       <div class="cfd-actions">
-        <button class="cfd-action-btn" @click="selectAllCol(activeFilterCol)">
-          Tampilkan Semua
-        </button>
-        <span class="cfd-sep">|</span>
-        <button
-          class="cfd-action-btn text-error"
-          @click="hideAllCol(activeFilterCol)"
-        >
-          Sembunyikan Semua
-        </button>
+        <template v-if="colFilterSearch[activeFilterCol]">
+          <button
+            class="cfd-action-btn font-weight-bold text-success"
+            @click="selectOnlySearch(activeFilterCol)"
+          >
+            Pilih Hasil Cari Saja
+          </button>
+          <span class="cfd-sep">|</span>
+          <button
+            class="cfd-action-btn text-error"
+            @click="hideAllCol(activeFilterCol)"
+          >
+            Kosongkan
+          </button>
+        </template>
+        <template v-else>
+          <button class="cfd-action-btn" @click="selectAllCol(activeFilterCol)">
+            Pilih Semua
+          </button>
+          <span class="cfd-sep">|</span>
+          <button
+            class="cfd-action-btn text-error"
+            @click="hideAllCol(activeFilterCol)"
+          >
+            Kosongkan
+          </button>
+        </template>
       </div>
       <div class="cfd-divider" />
       <div class="cfd-list">
-        <label
+        <div
           v-for="val in filteredUniqueVals(activeFilterCol)"
           :key="val"
           class="cfd-item"
         >
-          <input
-            type="checkbox"
-            :checked="columnFilters[activeFilterCol]?.has(val) ?? true"
-            @change="toggleColFilter(activeFilterCol, val)"
-          />
-          <span class="cfd-val">{{ val === "" ? "(Kosong)" : val }}</span>
-        </label>
+          <label class="cfd-item-lbl">
+            <input
+              type="checkbox"
+              :checked="columnFilters[activeFilterCol]?.has(val) ?? true"
+              @change="toggleColFilter(activeFilterCol, val)"
+            />
+            <span class="cfd-val" :title="val">{{
+              val === "" ? "(Kosong)" : val
+            }}</span>
+          </label>
+          <button
+            type="button"
+            class="cfd-only-btn"
+            title="Pilih hanya item ini"
+            @click.stop="selectOnlyThis(activeFilterCol, val)"
+          >
+            Hanya
+          </button>
+        </div>
         <div
           v-if="filteredUniqueVals(activeFilterCol).length === 0"
           class="cfd-empty"
@@ -1220,7 +1269,9 @@ watch(
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  width: 220px;
+  width: 260px;
+  min-width: 220px;
+  max-width: 340px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1264,6 +1315,9 @@ watch(
 .cfd-action-btn.text-error {
   color: #c62828;
 }
+.cfd-action-btn.text-success {
+  color: #2e7d32;
+}
 .cfd-sep {
   color: rgba(var(--v-border-color), var(--v-border-opacity));
   font-size: 11px;
@@ -1280,9 +1334,8 @@ watch(
 .cfd-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  cursor: pointer;
+  justify-content: space-between;
+  padding: 3px 8px;
   font-size: 12px;
   color: rgb(var(--v-theme-on-surface));
   transition: background 0.1s;
@@ -1290,12 +1343,40 @@ watch(
 .cfd-item:hover {
   background: rgba(46, 125, 50, 0.07);
 }
-.cfd-item input[type="checkbox"] {
+.cfd-item-lbl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.cfd-item-lbl input[type="checkbox"] {
   width: 13px;
   height: 13px;
   cursor: pointer;
   flex-shrink: 0;
   accent-color: #2e7d32;
+}
+.cfd-only-btn {
+  display: none;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  cursor: pointer;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+.cfd-item:hover .cfd-only-btn {
+  display: inline-block;
+}
+.cfd-only-btn:hover {
+  background: #2e7d32;
+  color: white;
 }
 .cfd-val {
   overflow: hidden;
