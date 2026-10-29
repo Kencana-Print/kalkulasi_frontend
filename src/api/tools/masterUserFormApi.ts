@@ -6,6 +6,7 @@ export interface UserMenuPermission {
   insert_: string;
   edit_: string;
   delete_: string;
+  save_: string;
 }
 
 export interface UserDetail {
@@ -14,7 +15,6 @@ export interface UserDetail {
   password: string;
   cabang: string;
   aktif: number;
-  editReport: number;
   menus: UserMenuPermission[];
 }
 

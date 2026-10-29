@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/authStore";
 import { IconTags } from "@tabler/icons-vue";
 import BaseBrowse from "@/components/BaseBrowse.vue";
 import { useBrowse } from "@/composables/useBrowse";
 import { hargaApi, type Harga, type HargaOptions } from "@/api/master/hargaApi";
 
-const MENU_ID = "8"; // Adjust according to your menu ID
+const MENU_ID = "7"; // ID menu Master Harga Kain di tmenu
 const toast = useToast();
+const authStore = useAuthStore();
 
 const {
   items,
@@ -97,6 +99,10 @@ const handleJenisKainChange = () => {
 };
 
 const handleSave = async () => {
+  if (!authStore.can(MENU_ID, "save")) {
+    toast.error("Anda tidak punya akses untuk menyimpan data.");
+    return;
+  }
   if (!form.value.jenisKain) {
     toast.warning("Jenis kain harus dipilih.");
     return;

@@ -2,6 +2,7 @@
 import { computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/authStore";
 import { IconTools } from "@tabler/icons-vue";
 import { useForm } from "@/composables/useForm";
 import BaseForm from "@/components/BaseForm.vue";
@@ -11,6 +12,7 @@ const MENU_ID = "12";
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+const authStore = useAuthStore();
 
 const isEditMode = computed(() => !!route.params.kode);
 
@@ -99,6 +101,10 @@ watch(
 
 // Replikasi validasi btnSimpanClick Delphi
 const validateSave = () => {
+  if (!authStore.can(MENU_ID, "save")) {
+    toast.error("Anda tidak punya akses untuk menyimpan data.");
+    return;
+  }
   const fd: any = formData.value;
   if (!fd.jenis?.trim()) {
     toast.warning("Jenis pengerjaan kosong, tidak dapat disimpan");

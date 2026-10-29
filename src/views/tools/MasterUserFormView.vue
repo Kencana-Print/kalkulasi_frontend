@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/authStore";
 import { isAuthExpiredError } from "@/api/axios";
 import BaseForm from "@/components/BaseForm.vue";
 import { IconUsers } from "@tabler/icons-vue";
@@ -14,6 +15,7 @@ import {
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+const authStore = useAuthStore();
 
 const MENU_ID = "1";
 const isEdit = computed(() => !!route.params.kode);
@@ -31,7 +33,6 @@ const form = ref({
   password: "",
   cabang: "P01",
   aktif: 0, // 0=aktif, 1=tidak
-  editReport: 0,
 });
 
 const originalForm = ref<any>(null);
@@ -41,7 +42,7 @@ const cabangList = ref<string[]>([]);
 const allMenus = ref<MenuItem[]>([]);
 
 // ── Permission state per menu ─────────────────────────────────────────
-// Map: menu_id → { view_, insert_, edit_, delete_ }
+// Map: menu_id → { view_, insert_, edit_, delete_, save_ }
 const permissions = ref<Record<number, UserMenuPermission>>({});
 
 const initPermissions = () => {
@@ -53,6 +54,7 @@ const initPermissions = () => {
       insert_: "N",
       edit_: "N",
       delete_: "N",
+      save_: "N",
     };
   }
   permissions.value = p;
@@ -99,6 +101,7 @@ const menuGroups = computed(() => {
         insert_: "N",
         edit_: "N",
         delete_: "N",
+        save_: "N",
       },
     });
   }
@@ -131,6 +134,7 @@ const toggleGroupAll = (
       p.insert_ = val;
       p.edit_ = val;
       p.delete_ = val;
+      p.save_ = val;
     }
   }
 };
@@ -143,7 +147,8 @@ const isGroupAllChecked = (group: (typeof menuGroups.value)[0]) =>
       p.view_ === "Y" &&
       p.insert_ === "Y" &&
       p.edit_ === "Y" &&
-      p.delete_ === "Y"
+      p.delete_ === "Y" &&
+      p.save_ === "Y"
     );
   });
 
@@ -156,7 +161,8 @@ const isGroupPartial = (group: (typeof menuGroups.value)[0]) =>
       (p.view_ === "Y" ||
         p.insert_ === "Y" ||
         p.edit_ === "Y" ||
-        p.delete_ === "Y")
+        p.delete_ === "Y" ||
+        p.save_ === "Y")
     );
   });
 
@@ -169,16 +175,19 @@ const setPreset = (preset: "full" | "viewOnly" | "none") => {
       p.insert_ = "Y";
       p.edit_ = "Y";
       p.delete_ = "Y";
+      p.save_ = "Y";
     } else if (preset === "viewOnly") {
       p.view_ = "Y";
       p.insert_ = "N";
       p.edit_ = "N";
       p.delete_ = "N";
+      p.save_ = "N";
     } else {
       p.view_ = "N";
       p.insert_ = "N";
       p.edit_ = "N";
       p.delete_ = "N";
+      p.save_ = "N";
     }
   }
 };
@@ -191,11 +200,12 @@ const activeCount = computed(() => {
     if (p.insert_ === "Y") count++;
     if (p.edit_ === "Y") count++;
     if (p.delete_ === "Y") count++;
+    if (p.save_ === "Y") count++;
   }
   return count;
 });
 
-const totalSlots = computed(() => Object.keys(permissions.value).length * 4);
+const totalSlots = computed(() => Object.keys(permissions.value).length * 5);
 
 // ── Load ──────────────────────────────────────────────────────────────
 onMounted(async () => {
@@ -219,13 +229,16 @@ onMounted(async () => {
         password: d.password,
         cabang: d.cabang,
         aktif: d.aktif,
-        editReport: d.editReport,
       };
       loadPermissions(d.menus);
       originalForm.value = {
         form: JSON.parse(JSON.stringify(form.value)),
         perms: JSON.parse(JSON.stringify(permissions.value)),
       };
+    } else {
+      if (cabs.length > 0 && !cabs.includes(form.value.cabang)) {
+        form.value.cabang = cabs[0];
+      }
     }
   } catch (e: any) {
     if (isAuthExpiredError(e)) return;
@@ -238,6 +251,10 @@ onMounted(async () => {
 
 // ── Validasi + Simpan ─────────────────────────────────────────────────
 const validateSave = () => {
+  if (!authStore.can(MENU_ID, "save")) {
+    toast.error("Anda tidak punya akses untuk menyimpan data.");
+    return;
+  }
   if (!form.value.kode.trim()) {
     toast.warning("Kode user wajib diisi.");
     return;
@@ -279,9 +296,8 @@ const confirmCancel = () => {
       kode: "",
       nama: "",
       password: "",
-      cabang: "P01",
+      cabang: cabangList.value.length > 0 ? cabangList.value[0] : "P01",
       aktif: 0,
-      editReport: 0,
     };
     initPermissions();
   }
@@ -372,18 +388,6 @@ const confirmClose = () => {
               />
               <span>Aktif</span>
             </label>
-            <label class="check-item">
-              <input
-                type="checkbox"
-                :checked="form.editReport === 1"
-                @change="
-                  form.editReport = ($event.target as HTMLInputElement).checked
-                    ? 1
-                    : 0
-                "
-              />
-              <span>Edit Report</span>
-            </label>
           </div>
         </div>
 
@@ -453,6 +457,7 @@ const confirmClose = () => {
                 <span class="col-lbl">Insert</span>
                 <span class="col-lbl">Edit</span>
                 <span class="col-lbl">Delete</span>
+                <span class="col-lbl">Save</span>
               </div>
             </div>
 
@@ -485,6 +490,12 @@ const confirmClose = () => {
                   type="checkbox"
                   :checked="permissions[m.id]?.delete_ === 'Y'"
                   @change="togglePerm(m.id, 'delete_')"
+                  class="perm-cb"
+                />
+                <input
+                  type="checkbox"
+                  :checked="permissions[m.id]?.save_ === 'Y'"
+                  @change="togglePerm(m.id, 'save_')"
                   class="perm-cb"
                 />
               </div>
@@ -726,7 +737,7 @@ select.form-inp {
 }
 .group-cols {
   display: grid;
-  grid-template-columns: repeat(4, 50px);
+  grid-template-columns: repeat(5, 48px);
   text-align: center;
 }
 .col-lbl {
@@ -781,7 +792,7 @@ select.form-inp {
 
 .perm-checks {
   display: grid;
-  grid-template-columns: repeat(4, 50px);
+  grid-template-columns: repeat(5, 48px);
   justify-items: center;
   flex-shrink: 0;
 }

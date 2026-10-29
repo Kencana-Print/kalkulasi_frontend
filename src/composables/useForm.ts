@@ -52,8 +52,7 @@ export function useForm<
   const originalData = ref<T>(deepClone(options.initialData));
 
   const canSave = computed(() => {
-    const perm = isEditMode.value ? "edit" : "insert";
-    return authStore.can(options.menuId, perm);
+    return authStore.can(options.menuId, "save");
   });
 
   const goBack = () => {
@@ -79,6 +78,11 @@ export function useForm<
   };
 
   const executeSave = async () => {
+    if (!authStore.can(options.menuId, "save")) {
+      showSaveDialog.value = false;
+      toast.error("Anda tidak punya akses untuk menyimpan data.");
+      return;
+    }
     isSaving.value = true;
     try {
       const response = await options.submitApi(formData.value as T);

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/authStore";
 import { IconScale } from "@tabler/icons-vue";
 import BaseBrowse from "@/components/BaseBrowse.vue";
 import { useBrowse } from "@/composables/useBrowse";
@@ -8,6 +9,7 @@ import { gramasiApi, type Gramasi } from "@/api/master/gramasiApi";
 
 const MENU_ID = "8"; // Sesuaikan ID menu
 const toast = useToast();
+const authStore = useAuthStore();
 
 const {
   items,
@@ -35,6 +37,10 @@ const openCreate = () => {
 };
 
 const handleSave = async () => {
+  if (!authStore.can(MENU_ID, "save")) {
+    toast.error("Anda tidak punya akses untuk menyimpan data.");
+    return;
+  }
   if (!formGramasi.value.trim()) {
     toast.warning("Gramasi harus diisi.");
     return;

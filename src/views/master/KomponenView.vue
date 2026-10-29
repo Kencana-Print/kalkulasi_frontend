@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/authStore";
 import { IconList } from "@tabler/icons-vue";
 import BaseBrowse from "@/components/BaseBrowse.vue";
 import { useBrowse } from "@/composables/useBrowse";
@@ -9,6 +10,7 @@ import { komponenApi, type Komponen } from "@/api/master/komponenApi";
 // men_id 9 = frmBrowKomponen (Master Komponen) — sama dengan menu sidebar & backend.
 const MENU_ID = "9";
 const toast = useToast();
+const authStore = useAuthStore();
 
 const {
   items,
@@ -37,6 +39,10 @@ const openCreate = () => {
 };
 
 const handleSave = async () => {
+  if (!authStore.can(MENU_ID, "save")) {
+    toast.error("Anda tidak punya akses untuk menyimpan data.");
+    return;
+  }
   if (!formNama.value.trim()) {
     toast.warning("Komponen kosong, tidak dapat disimpan.");
     return;

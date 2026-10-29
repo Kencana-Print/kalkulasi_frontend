@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useAuthStore } from "@/stores/authStore";
+import { useToast } from "vue-toastification";
 import PageLayout from "@/components/PageLayout.vue";
 import {
   IconDeviceFloppy,
@@ -32,8 +34,19 @@ const emit = defineEmits([
   "confirm-close",
 ]);
 
+const authStore = useAuthStore();
+const toast = useToast();
+
 // ── Collapse kolom kiri — memberi ruang lebih ke tabel di right-column ──
 const leftCollapsed = ref(false);
+
+const onSaveClick = () => {
+  if (props.menuId && !authStore.can(props.menuId, "save")) {
+    toast.error("Anda tidak punya akses untuk menyimpan data.");
+    return;
+  }
+  emit("validate-save");
+};
 </script>
 
 <template>
@@ -42,7 +55,7 @@ const leftCollapsed = ref(false);
       <v-btn
         size="small"
         color="primary"
-        @click="emit('validate-save')"
+        @click="onSaveClick"
         :loading="isSaving"
       >
         <template #prepend

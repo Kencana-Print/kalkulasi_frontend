@@ -39,21 +39,22 @@ export const useAuthStore = defineStore("auth", () => {
   };
 
   const can = (
-    menuId: string,
-    action: "view" | "insert" | "edit" | "delete" | "print" = "view",
+    menuId: string | number,
+    action: "view" | "insert" | "edit" | "delete" | "save" | "print" = "view",
   ): boolean => {
-    if (isAdmin.value) return true;
-    if (!user.value?.menus?.length) return false;
+    if (action !== "save" && isAdmin.value) return true;
+    if (!user.value?.menus?.length) return isAdmin.value;
 
     const menu = user.value.menus.find(
       (m) => String(m.menu_id) === String(menuId),
     );
-    if (!menu) return false;
+    if (!menu) return isAdmin.value;
     const col = {
       view: "hak_view",
       insert: "hak_insert",
       edit: "hak_edit",
       delete: "hak_delete",
+      save: "hak_save",
       print: "hak_print",
     }[action] as keyof MenuPermission;
     return menu[col] === "Y";

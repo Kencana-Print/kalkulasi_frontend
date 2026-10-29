@@ -20,6 +20,7 @@ export interface MenuPermission {
   hak_insert: "Y" | "N";
   hak_edit: "Y" | "N";
   hak_delete: "Y" | "N";
+  hak_save?: "Y" | "N";
   hak_print: "Y" | "N";
 }
 

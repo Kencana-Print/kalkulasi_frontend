@@ -2,6 +2,7 @@
 import { computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { useAuthStore } from "@/stores/authStore";
 import { IconPlus, IconTrash, IconShirt } from "@tabler/icons-vue";
 import { useForm } from "@/composables/useForm";
 import BaseForm from "@/components/BaseForm.vue";
@@ -15,6 +16,7 @@ const MENU_ID = "11";
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
+const authStore = useAuthStore();
 
 const isEditMode = computed(() => !!route.params.kode);
 
@@ -104,6 +106,10 @@ const {
 
 // Replikasi validasi btnSimpanClick Delphi
 const validateSave = () => {
+  if (!authStore.can(MENU_ID, "save")) {
+    toast.error("Anda tidak punya akses untuk menyimpan data.");
+    return;
+  }
   if (!formData.value.nama?.trim()) {
     toast.warning("Nama Pekerjaan kosong, tidak dapat disimpan");
     return;

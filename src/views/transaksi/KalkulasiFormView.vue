@@ -491,6 +491,10 @@ const {
 });
 
 const validateSave = () => {
+  if (!authStore.can("22", "save") && !authStore.can("21", "save")) {
+    toast.error("Anda tidak punya akses untuk menyimpan data.");
+    return;
+  }
   if (formData.value.ckCancel && !formData.value.ket?.trim()) {
     toast.warning("Status dicancel. Note Marketing harus diisi.");
     return;
