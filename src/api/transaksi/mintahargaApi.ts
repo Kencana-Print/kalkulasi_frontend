@@ -7,6 +7,7 @@ export interface DivisiOption {
 
 export interface MintaHargaRow {
   Nomor: string;
+  StatusPenawaran: string;
   Divisi: string;
   Tanggal: string;
   Approved: string;

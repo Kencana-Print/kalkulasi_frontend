@@ -130,6 +130,7 @@ const onExpandedChange = async (rows: any[]) => {
 // ── Headers ───────────────────────────────────────────────────────────
 const headers = [
   { key: "Nomor", title: "Nomor", width: "140px" },
+  { key: "StatusPenawaran", title: "Status Penawaran", width: "130px", align: "center" as const },
   { key: "Divisi", title: "Divisi", width: "110px" },
   { key: "Tanggal", title: "Tanggal", width: "100px", align: "center" as const },
   { key: "NamaPekerjaan", title: "Nama Pekerjaan", width: "220px" },
@@ -205,6 +206,7 @@ const onExportExcel = async (customRows?: any[]) => {
   // 1. Definisikan pemetaan kolom untuk Excel
   const columns: ExcelColumn[] = [
     { header: "Nomor", key: "Nomor", width: 18 },
+    { header: "Status Penawaran", key: "StatusPenawaran", width: 16, align: "center" },
     { header: "Divisi", key: "Divisi", width: 14 },
     { header: "Tanggal", key: "Tanggal", width: 14, align: "center" },
     { header: "Nama Pekerjaan", key: "NamaPekerjaan", width: 28 },
