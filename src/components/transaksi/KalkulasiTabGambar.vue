@@ -5,10 +5,9 @@ import { IconPhoto } from "@tabler/icons-vue";
 // Padanan tab "Gambar" di Delphi (Image2, duplikat tampilan dari Image1 di
 // Tab Permintaan Harga). Replikasi ufrmKalkulasi.pas ~4311:
 //   apathimage + '\mintaharga\' + nomorMH + '.jpg'
-// Selalu lewat proxy backend same-origin (/api/images/...) supaya tidak kena
-// mixed-content saat aplikasi dibuka via HTTPS — backend yang mengambilkan
-// file dari server gambar (103.94.238.252:8182/images/mintaharga). Bisa
-// dioverride via env VITE_MINTAHARGA_IMAGE_URL bila ingin langsung.
+// Lewat backend same-origin (/api/images/...) — backend membaca file
+// langsung dari /mnt/image/mintaharga/. Bisa dioverride via env
+// VITE_MINTAHARGA_IMAGE_URL bila ingin langsung.
 const IMAGE_BASE_URL =
   (import.meta as any).env?.VITE_MINTAHARGA_IMAGE_URL || "/api/images/mintaharga";
 
